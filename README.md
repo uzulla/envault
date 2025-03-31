@@ -46,6 +46,8 @@ envault .env --file /path/to/output.vaulted
 
 ### 環境変数のエクスポート
 
+#### 従来の方法（シェルスクリプト評価）
+
 ```bash
 # .env.vaultedファイルから環境変数をエクスポート（重要：evalまたはsourceで実行する必要があります）
 eval $(envault export --output-script-only)
@@ -59,7 +61,42 @@ eval $(envault export --output-script-only --file /path/to/custom.vaulted)
 echo "password" | envault export --output-script-only --password-stdin | eval
 ```
 
-**注意**: `envault export`コマンドはシェルスクリプトを出力するだけで、環境変数を直接設定しません。環境変数を実際に設定するには、上記のように`--output-script-only`フラグを使用して、`eval`または`source`コマンドで実行する必要があります。
+**注意**: この方法では、`envault export`コマンドはシェルスクリプトを出力するだけで、環境変数を直接設定しません。環境変数を実際に設定するには、上記のように`--output-script-only`フラグを使用して、`eval`または`source`コマンドで実行する必要があります。
+
+#### 新しい方法（より簡単）
+
+##### 新しいbashセッションを起動
+
+```bash
+# 新しいbashセッションを起動して環境変数を設定
+envault export --new-shell
+
+# 特定の暗号化ファイルから環境変数を設定して新しいbashセッションを起動
+envault export --new-shell --file /path/to/custom.vaulted
+
+# stdinからパスワードを読み込んで新しいbashセッションを起動
+echo "password" | envault export --new-shell --password-stdin
+```
+
+この方法では、envaultが環境変数を設定した新しいbashセッションを起動します。元のシェルには影響を与えませんが、新しいシェル内ですべての環境変数が利用可能になります。
+
+##### 特定のコマンドを実行
+
+```bash
+# 環境変数を設定して特定のコマンドを実行
+envault export -- node app.js
+
+# 環境変数を設定してdocker-composeを実行
+envault export -- docker-compose up
+
+# 環境変数を設定してenvコマンドで確認
+envault export -- env | grep SECRET
+
+# 特定の暗号化ファイルから環境変数を設定してコマンドを実行
+envault export --file /path/to/custom.vaulted -- python script.py
+```
+
+この方法では、envaultが環境変数を設定してから指定されたコマンドを実行します。コマンドとその引数は `--` の後に指定します。
 
 ### 環境変数のアンセット
 

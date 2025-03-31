@@ -36,10 +36,10 @@
 
 ### 2. エクスポート機能のテスト
 
-#### 2.1 基本的なエクスポート
+#### 2.1 基本的なエクスポート（従来の方法）
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
    ```
-   ./envault export --file QA/.env.vaulted
+   eval $(./envault export --file QA/.env.vaulted --output-script-only)
    ```
 2. 確認事項:
    - パスワードの入力が求められること
@@ -55,10 +55,39 @@
 #### 2.3 stdinからのパスワード入力
 1. 以下のコマンドを実行
    ```
-   echo "password" | ./envault export --file QA/.env.vaulted --password-stdin
+   echo "password" | eval $(./envault export --file QA/.env.vaulted --password-stdin --output-script-only)
    ```
 2. 確認事項:
    - 環境変数が正常にエクスポートされること
+
+#### 2.4 新しいbashセッションの起動
+1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
+   ```
+   ./envault export --file QA/.env.vaulted --new-shell
+   ```
+2. 確認事項:
+   - パスワードの入力が求められること
+   - 正しいパスワードを入力すると新しいbashセッションが起動すること
+   - 新しいシェル内で`echo $TEST_VAR1`を実行すると値が表示されること
+   - 新しいシェルを終了（`exit`コマンド）すると、元のシェルでは環境変数が設定されていないこと
+
+#### 2.5 コマンド実行オプション
+1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
+   ```
+   ./envault export --file QA/.env.vaulted -- env | grep TEST_VAR
+   ```
+2. 確認事項:
+   - パスワードの入力が求められること
+   - 正しいパスワードを入力するとenvコマンドが実行され、TEST_VARで始まる環境変数が表示されること
+   - コマンド実行後、元のシェルでは環境変数が設定されていないこと
+
+#### 2.6 複雑なコマンド実行
+1. 以下のコマンドを実行
+   ```
+   ./envault export --file QA/.env.vaulted -- bash -c "echo TEST_VAR1=$TEST_VAR1 TEST_VAR2=$TEST_VAR2"
+   ```
+2. 確認事項:
+   - 指定したbashコマンドが実行され、環境変数の値が正しく表示されること
 
 ### 3. アンセット機能のテスト
 
