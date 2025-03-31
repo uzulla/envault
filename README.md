@@ -15,6 +15,20 @@ envaultは、.envファイルを暗号化して.env.vaultedファイルとして
 ## インストール
 
 ```bash
+# リポジトリをクローン
+git clone https://github.com/uzulla/envault.git
+cd envault
+
+# 依存関係を整理
+go mod tidy
+
+# ビルド
+go build -o envault cmd/envault/main.go
+```
+
+または、Go Modulesを使用してインストール：
+
+```bash
 go install github.com/uzulla/envault/cmd/envault@latest
 ```
 
@@ -33,28 +47,36 @@ envault .env --file /path/to/output.vaulted
 ### 環境変数のエクスポート
 
 ```bash
-# .env.vaultedファイルから環境変数をエクスポート
-envault export
+# .env.vaultedファイルから環境変数をエクスポート（重要：evalまたはsourceで実行する必要があります）
+eval $(envault export)
+# または
+source <(envault export)
 
 # 特定の暗号化ファイルから環境変数をエクスポート
-envault export --file /path/to/custom.vaulted
+eval $(envault export --file /path/to/custom.vaulted)
 
 # stdinからパスワードを読み込んでエクスポート
-echo "password" | envault export --password-stdin
+echo "password" | envault export --password-stdin | source
 ```
+
+**注意**: `envault export`コマンドはシェルスクリプトを出力するだけで、環境変数を直接設定しません。環境変数を実際に設定するには、上記のように`eval`または`source`コマンドを使用する必要があります。
 
 ### 環境変数のアンセット
 
 ```bash
-# .env.vaultedファイルに記載された環境変数をアンセット
-envault unset
+# .env.vaultedファイルに記載された環境変数をアンセット（重要：evalまたはsourceで実行する必要があります）
+eval $(envault unset)
+# または
+source <(envault unset)
 
 # 特定の暗号化ファイルに記載された環境変数をアンセット
-envault unset --file /path/to/custom.vaulted
+eval $(envault unset --file /path/to/custom.vaulted)
 
 # stdinからパスワードを読み込んでアンセット
-echo "password" | envault unset --password-stdin
+echo "password" | envault unset --password-stdin | source
 ```
+
+**注意**: `envault unset`コマンドもシェルスクリプトを出力するだけで、環境変数を直接アンセットしません。環境変数を実際にアンセットするには、上記のように`eval`または`source`コマンドを使用する必要があります。
 
 ### ヘルプとバージョン情報
 
