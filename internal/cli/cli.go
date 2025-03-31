@@ -62,6 +62,11 @@ func (c *CLI) Run(args []string) error {
 			return err
 		}
 		return c.runUnset(outputScriptOnly)
+	case "dump":
+		if err := globalFlags.Parse(args[1:]); err != nil {
+			return err
+		}
+		return c.runDump()
 	default:
 		if err := globalFlags.Parse(args[1:]); err != nil {
 			return err
@@ -198,11 +203,37 @@ func (c *CLI) runUnset(outputScriptOnly bool) error {
 	return nil
 }
 
+func (c *CLI) runDump() error {
+	data, err := file.ReadVaultedFile(c.vaultedFile)
+	if err != nil {
+		return fmt.Errorf(".env.vaultedファイルの読み込みに失敗しました: %w", err)
+	}
+
+	var password string
+	if c.passwordStdin {
+		password, err = utils.GetPasswordFromStdin()
+	} else {
+		password, err = utils.GetPasswordInteractive("復号化用パスワードを入力してください: ")
+	}
+	if err != nil {
+		return err
+	}
+
+	decryptedData, err := crypto.Decrypt(data, password)
+	if err != nil {
+		return fmt.Errorf("復号化に失敗しました: %w", err)
+	}
+
+	fmt.Print(string(decryptedData))
+	return nil
+}
+
 func (c *CLI) printUsage() {
 	fmt.Println(`使用方法:
   envault [オプション] <.envファイル>  .envファイルを暗号化して.env.vaultedファイルを作成
   envault export [オプション]          .env.vaultedファイルから環境変数をエクスポート
   envault unset [オプション]           .env.vaultedファイルに記載された環境変数をアンセット
+  envault dump [オプション]            .env.vaultedファイルを復号化して内容を表示
   envault help                        ヘルプを表示
   envault version                     バージョン情報を表示
 
@@ -224,5 +255,9 @@ func (c *CLI) printUsage() {
   # 環境変数をアンセットする方法:
   envault unset                       アンセットスクリプトのパスを表示
   eval $(envault unset --output-script-only)  環境変数を直接アンセット
-  source <(envault unset --output-script-only)  環境変数を直接アンセット（別の方法）`)
+  source <(envault unset --output-script-only)  環境変数を直接アンセット（別の方法）
+  
+  # 暗号化されたファイルの内容を確認する方法:
+  envault dump                        .env.vaultedファイルの内容を表示
+  envault dump > decrypted.env        復号化した内容をファイルに保存`)
 }
