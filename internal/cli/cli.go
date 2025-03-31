@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/uzulla/envault/internal/crypto"
@@ -38,6 +39,9 @@ func (c *CLI) Run(args []string) error {
 	globalFlags := flag.NewFlagSet("envault", flag.ExitOnError)
 	globalFlags.BoolVar(&c.passwordStdin, "password-stdin", false, "stdinからパスワードを読み込む")
 	globalFlags.StringVar(&c.vaultedFile, "file", "", "使用する.env.vaultedファイルのパス")
+	
+	var outputScriptOnly bool
+	globalFlags.BoolVar(&outputScriptOnly, "output-script-only", false, "スクリプトのみを出力（情報メッセージなし）")
 
 	command := args[0]
 
@@ -52,12 +56,12 @@ func (c *CLI) Run(args []string) error {
 		if err := globalFlags.Parse(args[1:]); err != nil {
 			return err
 		}
-		return c.runExport()
+		return c.runExport(outputScriptOnly)
 	case "unset":
 		if err := globalFlags.Parse(args[1:]); err != nil {
 			return err
 		}
-		return c.runUnset()
+		return c.runUnset(outputScriptOnly)
 	default:
 		if err := globalFlags.Parse(args[1:]); err != nil {
 			return err
@@ -114,7 +118,7 @@ func (c *CLI) runEncrypt(envFilePath string) error {
 	return nil
 }
 
-func (c *CLI) runExport() error {
+func (c *CLI) runExport(outputScriptOnly bool) error {
 	data, err := file.ReadVaultedFile(c.vaultedFile)
 	if err != nil {
 		return fmt.Errorf(".env.vaultedファイルの読み込みに失敗しました: %w", err)
@@ -142,15 +146,19 @@ func (c *CLI) runExport() error {
 
 	script := env.GenerateExportScript(envVars)
 
-	if err := utils.ExecuteScript(script); err != nil {
-		return fmt.Errorf("環境変数のエクスポートに失敗しました: %w", err)
+	if outputScriptOnly {
+		fmt.Print(script)
+	} else {
+		if err := utils.ExecuteScript(script); err != nil {
+			return fmt.Errorf("環境変数のエクスポートに失敗しました: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "%d個の環境変数をエクスポートしました\n", len(envVars))
 	}
 
-	fmt.Printf("%d個の環境変数をエクスポートしました\n", len(envVars))
 	return nil
 }
 
-func (c *CLI) runUnset() error {
+func (c *CLI) runUnset(outputScriptOnly bool) error {
 	data, err := file.ReadVaultedFile(c.vaultedFile)
 	if err != nil {
 		return fmt.Errorf(".env.vaultedファイルの読み込みに失敗しました: %w", err)
@@ -178,11 +186,15 @@ func (c *CLI) runUnset() error {
 
 	script := env.GenerateUnsetScript(envVars)
 
-	if err := utils.ExecuteScript(script); err != nil {
-		return fmt.Errorf("環境変数のアンセットに失敗しました: %w", err)
+	if outputScriptOnly {
+		fmt.Print(script)
+	} else {
+		if err := utils.ExecuteScript(script); err != nil {
+			return fmt.Errorf("環境変数のアンセットに失敗しました: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "%d個の環境変数をアンセットしました\n", len(envVars))
 	}
 
-	fmt.Printf("%d個の環境変数をアンセットしました\n", len(envVars))
 	return nil
 }
 
@@ -197,10 +209,20 @@ func (c *CLI) printUsage() {
 オプション:
   --password-stdin                    stdinからパスワードを読み込む
   --file <ファイルパス>               使用する.env.vaultedファイルのパス（デフォルト: .env.vaulted）
+  --output-script-only                スクリプトのみを出力（情報メッセージなし）
 
 例:
   envault .env                        .envファイルを暗号化
-  envault export                      環境変数をエクスポート
+  
+  # 環境変数をエクスポートする方法:
+  envault export                      エクスポートスクリプトのパスを表示
+  eval $(envault export --output-script-only)  環境変数を直接エクスポート
+  source <(envault export --output-script-only)  環境変数を直接エクスポート（別の方法）
+  
   echo "password" | envault export --password-stdin  stdinからパスワードを読み込んでエクスポート
-  envault unset                       環境変数をアンセット`)
+  
+  # 環境変数をアンセットする方法:
+  envault unset                       アンセットスクリプトのパスを表示
+  eval $(envault unset --output-script-only)  環境変数を直接アンセット
+  source <(envault unset --output-script-only)  環境変数を直接アンセット（別の方法）`)
 }

@@ -48,35 +48,35 @@ envault .env --file /path/to/output.vaulted
 
 ```bash
 # .env.vaultedファイルから環境変数をエクスポート（重要：evalまたはsourceで実行する必要があります）
-eval $(envault export)
+eval $(envault export --output-script-only)
 # または
-source <(envault export)
+source <(envault export --output-script-only)
 
 # 特定の暗号化ファイルから環境変数をエクスポート
-eval $(envault export --file /path/to/custom.vaulted)
+eval $(envault export --output-script-only --file /path/to/custom.vaulted)
 
 # stdinからパスワードを読み込んでエクスポート
-echo "password" | envault export --password-stdin | source
+echo "password" | envault export --output-script-only --password-stdin | eval
 ```
 
-**注意**: `envault export`コマンドはシェルスクリプトを出力するだけで、環境変数を直接設定しません。環境変数を実際に設定するには、上記のように`eval`または`source`コマンドを使用する必要があります。
+**注意**: `envault export`コマンドはシェルスクリプトを出力するだけで、環境変数を直接設定しません。環境変数を実際に設定するには、上記のように`--output-script-only`フラグを使用して、`eval`または`source`コマンドで実行する必要があります。
 
 ### 環境変数のアンセット
 
 ```bash
 # .env.vaultedファイルに記載された環境変数をアンセット（重要：evalまたはsourceで実行する必要があります）
-eval $(envault unset)
+eval $(envault unset --output-script-only)
 # または
-source <(envault unset)
+source <(envault unset --output-script-only)
 
 # 特定の暗号化ファイルに記載された環境変数をアンセット
-eval $(envault unset --file /path/to/custom.vaulted)
+eval $(envault unset --output-script-only --file /path/to/custom.vaulted)
 
 # stdinからパスワードを読み込んでアンセット
-echo "password" | envault unset --password-stdin | source
+echo "password" | envault unset --output-script-only --password-stdin | eval
 ```
 
-**注意**: `envault unset`コマンドもシェルスクリプトを出力するだけで、環境変数を直接アンセットしません。環境変数を実際にアンセットするには、上記のように`eval`または`source`コマンドを使用する必要があります。
+**注意**: `envault unset`コマンドもシェルスクリプトを出力するだけで、環境変数を直接アンセットしません。環境変数を実際にアンセットするには、上記のように`--output-script-only`フラグを使用して、`eval`または`source`コマンドで実行する必要があります。
 
 ### ヘルプとバージョン情報
 
