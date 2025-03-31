@@ -78,6 +78,22 @@ echo "password" | envault unset --output-script-only --password-stdin | eval
 
 **注意**: `envault unset`コマンドもシェルスクリプトを出力するだけで、環境変数を直接アンセットしません。環境変数を実際にアンセットするには、上記のように`--output-script-only`フラグを使用して、`eval`または`source`コマンドで実行する必要があります。
 
+### 暗号化されたファイルの内容を確認
+
+```bash
+# .env.vaultedファイルの内容を復号化して表示
+envault dump
+
+# 特定の暗号化ファイルの内容を表示
+envault dump --file /path/to/custom.vaulted
+
+# 復号化した内容をファイルに保存
+envault dump > decrypted.env
+
+# stdinからパスワードを読み込んで復号化
+echo "password" | envault dump --password-stdin
+```
+
 ### ヘルプとバージョン情報
 
 ```bash
