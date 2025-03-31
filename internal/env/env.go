@@ -71,8 +71,8 @@ func GenerateUnsetScript(envVars map[string]string) string {
 }
 
 func escapeValue(value string) string {
-	value = strings.ReplaceAll(value, "\"", "\\\"")
 	value = strings.ReplaceAll(value, "\\", "\\\\")
+	value = strings.ReplaceAll(value, "\"", "\\\"")
 	value = strings.ReplaceAll(value, "`", "\\`")
 	value = strings.ReplaceAll(value, "$", "\\$")
 	
