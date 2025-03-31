@@ -6,6 +6,8 @@
 
 - `manual_testing.md` - マニュアルテスト手順書
 - `test_env_generator.sh` - テスト用の.envファイル生成スクリプト
+- `test.env` - テスト用の環境変数ファイル
+- `test_results.md` - テスト結果記録ファイル
 
 ## テスト方法
 
@@ -49,15 +51,15 @@ go test ./...
 
 ```bash
 # デフォルト設定で.envファイルを生成
-./test_env_generator.sh
+./QA/test_env_generator.sh
 
 # カスタム名と環境変数の数を指定
-./test_env_generator.sh test.env 10
+./QA/test_env_generator.sh ./QA/custom_test.env 10
 ```
 
 #### マニュアルテストの実行
 
-`manual_testing.md`に記載されているテスト手順に従って、envaultの各機能をテストします。テスト結果は同ファイル内のテスト結果記録表に記入してください。
+`QA/manual_testing.md`に記載されているテスト手順に従って、envaultの各機能をテストします。テスト結果は`QA/test_results.md`に記録してください。
 
 マニュアルテストでは以下の機能を検証します：
 
@@ -92,9 +94,9 @@ go test ./...
    go build -o envault cmd/envault/main.go
    ```
 
-2. テスト用の.envファイルを生成します：
+2. テスト用の.envファイルを使用します（既にQAディレクトリに配置されています）：
    ```bash
-   ./QA/test_env_generator.sh
+   ./envault QA/test.env
    ```
 
 3. マニュアルテスト手順に従ってテストを実行します。

@@ -2,7 +2,7 @@
 
 ## 前提条件
 - envaultがビルドされていること
-- テスト用の.envファイルが用意されていること
+- テスト用の.envファイルがQAディレクトリに用意されていること
 
 ## テスト環境
 - Linux (Ubuntu)
@@ -13,22 +13,22 @@
 ### 1. 暗号化機能のテスト
 
 #### 1.1 基本的な暗号化
-1. テスト用の.envファイルを作成
+1. QAディレクトリのテスト用の.envファイルを使用
    ```
-   TEST_ENV1=value1
-   TEST_ENV2=value2
+   TEST_VAR1=value1
+   TEST_VAR2=value2
    ```
 2. 以下のコマンドを実行
    ```
-   ./envault .env
+   ./envault QA/test.env
    ```
 3. 確認事項:
-   - .env.vaultedファイルが作成されること
+   - QA/.env.vaultedファイルが作成されること
    - パスワードの入力が求められること
    - 処理が正常に完了すること
 
 #### 1.2 既存の.env.vaultedファイルの上書き確認
-1. 既に.env.vaultedファイルが存在する状態で暗号化を実行
+1. 既にQA/.env.vaultedファイルが存在する状態で暗号化を実行
 2. 確認事項:
    - 上書きの確認メッセージが表示されること
    - 「Y」を入力すると上書きされること
@@ -37,14 +37,14 @@
 ### 2. エクスポート機能のテスト
 
 #### 2.1 基本的なエクスポート
-1. 暗号化された.env.vaultedファイルがある状態で以下のコマンドを実行
+1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
    ```
-   ./envault export
+   ./envault export --file QA/.env.vaulted
    ```
 2. 確認事項:
    - パスワードの入力が求められること
    - 正しいパスワードを入力すると環境変数がエクスポートされること
-   - `echo $TEST_ENV1`で値が表示されること
+   - `echo $TEST_VAR1`で値が表示されること
 
 #### 2.2 誤ったパスワードでのエクスポート
 1. 誤ったパスワードを入力
@@ -55,7 +55,7 @@
 #### 2.3 stdinからのパスワード入力
 1. 以下のコマンドを実行
    ```
-   echo "password" | ./envault export --password-stdin
+   echo "password" | ./envault export --file QA/.env.vaulted --password-stdin
    ```
 2. 確認事項:
    - 環境変数が正常にエクスポートされること
@@ -65,17 +65,17 @@
 #### 3.1 基本的なアンセット
 1. 環境変数がエクスポートされた状態で以下のコマンドを実行
    ```
-   ./envault unset
+   ./envault unset --file QA/.env.vaulted
    ```
 2. 確認事項:
    - パスワードの入力が求められること
    - 正しいパスワードを入力すると環境変数がアンセットされること
-   - `echo $TEST_ENV1`で値が表示されないこと
+   - `echo $TEST_VAR1`で値が表示されないこと
 
 #### 3.2 stdinからのパスワード入力
 1. 以下のコマンドを実行
    ```
-   echo "password" | ./envault unset --password-stdin
+   echo "password" | ./envault unset --file QA/.env.vaulted --password-stdin
    ```
 2. 確認事項:
    - 環境変数が正常にアンセットされること
@@ -83,19 +83,19 @@
 ### 4. ダンプ機能のテスト
 
 #### 4.1 基本的なダンプ
-1. 暗号化された.env.vaultedファイルがある状態で以下のコマンドを実行
+1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
    ```
-   ./envault dump
+   ./envault dump --file QA/.env.vaulted
    ```
 2. 確認事項:
    - パスワードの入力が求められること
    - 正しいパスワードを入力すると.envファイルの内容が表示されること
-   - 表示された内容が元の.envファイルと一致すること
+   - 表示された内容が元のQA/test.envファイルと一致すること
 
 #### 4.2 カスタムファイルのダンプ
 1. 以下のコマンドを実行
    ```
-   ./envault dump --file /path/to/custom.vaulted
+   ./envault dump --file QA/.env.vaulted
    ```
 2. 確認事項:
    - 指定したファイルの内容が正常に表示されること
@@ -103,39 +103,53 @@
 #### 4.3 出力のリダイレクト
 1. 以下のコマンドを実行
    ```
-   ./envault dump > decrypted.env
+   ./envault dump --file QA/.env.vaulted > QA/decrypted.env
    ```
 2. 確認事項:
-   - decrypted.envファイルが作成されること
-   - ファイルの内容が元の.envファイルと一致すること
+   - QA/decrypted.envファイルが作成されること
+   - ファイルの内容が元のQA/test.envファイルと一致すること
 
 #### 4.4 stdinからのパスワード入力
 1. 以下のコマンドを実行
    ```
-   echo "password" | ./envault dump --password-stdin
+   echo "password" | ./envault dump --file QA/.env.vaulted --password-stdin
    ```
 2. 確認事項:
    - .envファイルの内容が正常に表示されること
 
 ### 5. エラーケースのテスト
 
-#### 4.1 存在しない.envファイルの暗号化
+#### 5.1 存在しない.envファイルの暗号化
 1. 存在しない.envファイルを指定して暗号化を実行
+   ```
+   ./envault QA/nonexistent.env
+   ```
 2. 確認事項:
    - 適切なエラーメッセージが表示されること
 
-#### 4.2 存在しない.env.vaultedファイルのエクスポート
+#### 5.2 存在しない.env.vaultedファイルのエクスポート
 1. .env.vaultedファイルが存在しない状態でエクスポートを実行
+   ```
+   ./envault export --file QA/nonexistent.env.vaulted
+   ```
 2. 確認事項:
    - 適切なエラーメッセージが表示されること
 
-#### 4.3 不正な形式の.env.vaultedファイルのエクスポート
+#### 5.3 不正な形式の.env.vaultedファイルのエクスポート
 1. 不正な形式の.env.vaultedファイルを用意
+   ```
+   echo "invalid data" > QA/invalid.env.vaulted
+   ```
 2. エクスポートを実行
+   ```
+   ./envault export --file QA/invalid.env.vaulted
+   ```
 3. 確認事項:
    - 適切なエラーメッセージが表示されること
 
 ## テスト結果記録
+
+テスト結果は `QA/test_results.md` ファイルに記録してください。
 
 | テスト項目 | 期待結果 | 実際の結果 | 合否 | 備考 |
 |------------|----------|------------|------|------|
