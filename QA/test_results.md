@@ -2,7 +2,7 @@
 
 ## テスト実施日時
 - 日付: 2025年3月31日
-- 時間: 23:06
+- 時間: 23:24
 
 ## テスト環境
 - OS: Linux (Ubuntu)
@@ -38,14 +38,14 @@ go test ./... -v
 
 #### 1.1 基本的な暗号化
 - テスト内容: .envファイルを暗号化して.env.vaultedファイルを作成
-- 実行コマンド: `./envault test.env`
-- 期待結果: .env.vaultedファイルが作成され、パスワードの入力が求められること
-- 実際の結果: 期待通り、パスワードの入力が求められ、.env.vaultedファイルが作成された
+- 実行コマンド: `./envault QA/test.env`
+- 期待結果: QA/.env.vaultedファイルが作成され、パスワードの入力が求められること
+- 実際の結果: 期待通り、パスワードの入力が求められ、QA/.env.vaultedファイルが作成された
 - 合否: 合格
 
 #### 1.2 既存の.env.vaultedファイルの上書き確認
-- テスト内容: 既に.env.vaultedファイルが存在する状態で暗号化を実行
-- 実行コマンド: `./envault test.env`
+- テスト内容: 既にQA/.env.vaultedファイルが存在する状態で暗号化を実行
+- 実行コマンド: `./envault QA/test.env`
 - 期待結果: 上書きの確認メッセージが表示され、「Y」を入力すると上書きされること
 - 実際の結果: 期待通り、上書きの確認メッセージが表示され、「Y」を入力すると上書きされた
 - 合否: 合格
@@ -53,22 +53,22 @@ go test ./... -v
 ### 2. エクスポート機能のテスト
 
 #### 2.1 基本的なエクスポート
-- テスト内容: 暗号化された.env.vaultedファイルから環境変数をエクスポート
-- 実行コマンド: `./envault export`
+- テスト内容: 暗号化されたQA/.env.vaultedファイルから環境変数をエクスポート
+- 実行コマンド: `./envault export --file QA/.env.vaulted`
 - 期待結果: パスワードの入力が求められ、正しいパスワードを入力するとエクスポートスクリプトのパスが表示されること
 - 実際の結果: 期待通り、パスワードの入力が求められ、エクスポートスクリプトのパスが表示された
 - 合否: 合格
 
 #### 2.2 誤ったパスワードでのエクスポート
 - テスト内容: 誤ったパスワードを入力してエクスポートを試行
-- 実行コマンド: `./envault export`
+- 実行コマンド: `./envault export --file QA/.env.vaulted`
 - 期待結果: セキュリティ機能として、誤ったパスワードの場合はエラーメッセージが表示され、環境変数がエクスポートされないこと
 - 実際の結果: セキュリティ機能が正しく動作し、エラーメッセージが表示され、環境変数はエクスポートされなかった
 - 合否: 合格（セキュリティ機能が正しく動作）
 
 #### 2.3 stdinからのパスワード入力
 - テスト内容: stdinからパスワードを読み込んでエクスポート
-- 実行コマンド: `echo "testpassword" | ./envault export --password-stdin`
+- 実行コマンド: `echo "testpassword" | ./envault export --file QA/.env.vaulted --password-stdin`
 - 期待結果: エクスポートスクリプトのパスが表示されること
 - 実際の結果: 期待通り、エクスポートスクリプトのパスが表示された
 - 合否: 合格
@@ -77,14 +77,14 @@ go test ./... -v
 
 #### 3.1 基本的なアンセット
 - テスト内容: 環境変数をアンセット
-- 実行コマンド: `./envault unset`
+- 実行コマンド: `./envault unset --file QA/.env.vaulted`
 - 期待結果: パスワードの入力が求められ、正しいパスワードを入力するとアンセットスクリプトのパスが表示されること
 - 実際の結果: 期待通り、パスワードの入力が求められ、アンセットスクリプトのパスが表示された
 - 合否: 合格
 
 #### 3.2 stdinからのパスワード入力
 - テスト内容: stdinからパスワードを読み込んでアンセット
-- 実行コマンド: `echo "testpassword" | ./envault unset --password-stdin`
+- 実行コマンド: `echo "testpassword" | ./envault unset --file QA/.env.vaulted --password-stdin`
 - 期待結果: アンセットスクリプトのパスが表示されること
 - 実際の結果: 期待通り、アンセットスクリプトのパスが表示された
 - 合否: 合格
@@ -92,45 +92,45 @@ go test ./... -v
 ### 4. ダンプ機能のテスト
 
 #### 4.1 基本的なダンプ
-- テスト内容: 暗号化された.env.vaultedファイルの内容を表示
-- 実行コマンド: `./envault dump`
-- 期待結果: パスワードの入力が求められ、正しいパスワードを入力すると.envファイルの内容が表示されること
-- 実際の結果: 期待通り、パスワードの入力が求められ、.envファイルの内容が表示された
+- テスト内容: 暗号化されたQA/.env.vaultedファイルの内容を表示
+- 実行コマンド: `./envault dump --file QA/.env.vaulted`
+- 期待結果: パスワードの入力が求められ、正しいパスワードを入力するとQA/test.envファイルの内容が表示されること
+- 実際の結果: 期待通り、パスワードの入力が求められ、QA/test.envファイルの内容が表示された
 - 合否: 合格
 
 #### 4.2 カスタムファイルのダンプ
 - テスト内容: 指定したファイルの内容を表示
-- 実行コマンド: `./envault dump --file .env.vaulted`
+- 実行コマンド: `./envault dump --file QA/.env.vaulted`
 - 期待結果: 指定したファイルの内容が正常に表示されること
 - 実際の結果: 期待通り、指定したファイルの内容が表示された
 - 合否: 合格
 
 #### 4.3 出力のリダイレクト
 - テスト内容: 復号化した内容をファイルに保存
-- 実行コマンド: `./envault dump > decrypted.env`
-- 期待結果: decrypted.envファイルが作成され、内容が元の.envファイルと一致すること
-- 実際の結果: 期待通り、decrypted.envファイルが作成され、内容が元の.envファイルと一致した
+- 実行コマンド: `./envault dump --file QA/.env.vaulted > QA/decrypted.env`
+- 期待結果: QA/decrypted.envファイルが作成され、内容が元のQA/test.envファイルと一致すること
+- 実際の結果: 期待通り、QA/decrypted.envファイルが作成され、内容が元のQA/test.envファイルと一致した
 - 合否: 合格
 
 #### 4.4 stdinからのパスワード入力
 - テスト内容: stdinからパスワードを読み込んでダンプ
-- 実行コマンド: `echo "testpassword" | ./envault dump --password-stdin`
-- 期待結果: .envファイルの内容が正常に表示されること
-- 実際の結果: 期待通り、.envファイルの内容が表示された
+- 実行コマンド: `echo "testpassword" | ./envault dump --file QA/.env.vaulted --password-stdin`
+- 期待結果: QA/test.envファイルの内容が正常に表示されること
+- 実際の結果: 期待通り、QA/test.envファイルの内容が表示された
 - 合否: 合格
 
 ### 5. エラーケースのテスト
 
 #### 5.1 存在しない.envファイルの暗号化
 - テスト内容: 存在しない.envファイルを指定して暗号化を実行
-- 実行コマンド: `./envault nonexistent.env`
+- 実行コマンド: `./envault QA/nonexistent.env`
 - 期待結果: 適切なエラーメッセージが表示されること
 - 実際の結果: 期待通り、ファイルが存在しないというエラーメッセージが表示された
 - 合否: 合格
 
 #### 5.2 存在しない.env.vaultedファイルのエクスポート
-- テスト内容: .env.vaultedファイルが存在しない状態でエクスポートを実行
-- 実行コマンド: `mv .env.vaulted .env.vaulted.bak && ./envault export && mv .env.vaulted.bak .env.vaulted`
+- テスト内容: QA/.env.vaultedファイルが存在しない状態でエクスポートを実行
+- 実行コマンド: `mv QA/.env.vaulted QA/.env.vaulted.bak && ./envault export --file QA/.env.vaulted && mv QA/.env.vaulted.bak QA/.env.vaulted`
 - 期待結果: 適切なエラーメッセージが表示されること
 - 実際の結果: 期待通り、ファイルが存在しないというエラーメッセージが表示された
 - 合否: 合格
