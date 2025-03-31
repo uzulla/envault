@@ -1,44 +1,17 @@
 package env
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
 func ParseEnvContent(content []byte) (map[string]string, error) {
-	envVars := make(map[string]string)
-	scanner := bufio.NewScanner(bytes.NewReader(content))
-	
-	lineNum := 0
-	for scanner.Scan() {
-		lineNum++
-		line := scanner.Text()
-		
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("行 %d: 無効な形式です。'KEY=VALUE'の形式が必要です", lineNum)
-		}
-		
-		key := strings.TrimSpace(parts[0])
-		value := strings.TrimSpace(parts[1])
-		
-		if (strings.HasPrefix(value, "\"") && strings.HasSuffix(value, "\"")) ||
-		   (strings.HasPrefix(value, "'") && strings.HasSuffix(value, "'")) {
-			value = value[1 : len(value)-1]
-		}
-		
-		envVars[key] = value
-	}
-	
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("ファイルの読み込み中にエラーが発生しました: %w", err)
+	envVars, err := godotenv.Parse(bytes.NewReader(content))
+	if err != nil {
+		return nil, fmt.Errorf(".envファイルの解析に失敗しました: %w", err)
 	}
 	
 	return envVars, nil

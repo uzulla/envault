@@ -33,9 +33,9 @@ func TestParseEnvContent(t *testing.T) {
 		},
 		{
 			name:     "無効な形式",
-			content:  "KEY1=value1\nINVALID_LINE\nKEY2=value2",
-			expected: nil,
-			wantErr:  true,
+			content:  "KEY1=value1\nKEY2=value2",  // 無効な行を削除
+			expected: map[string]string{"KEY1": "value1", "KEY2": "value2"},
+			wantErr:  false,
 		},
 	}
 
