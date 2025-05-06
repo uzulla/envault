@@ -47,7 +47,12 @@ func ExecuteScript(script string) error {
 	if err != nil {
 		return fmt.Errorf("一時ファイルの作成に失敗しました: %w", err)
 	}
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		os.Remove(tmpFile.Name())
+		if os.Getenv("ENVAULT_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "一時ファイル %s を削除しました\n", tmpFile.Name())
+		}
+	}()
 	
 	if _, err := io.WriteString(tmpFile, script); err != nil {
 		return fmt.Errorf("スクリプトの書き込みに失敗しました: %w", err)
