@@ -22,7 +22,6 @@ go.work
 .env
 .env.*
 !.env.example
-QA/decrypted.env
 
 # IDE files
 .idea/

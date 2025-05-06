@@ -74,7 +74,7 @@
 2. 以下のコマンドを実行
 
    ```bash
-   ./envault QA/test.env
+   ./envault QA/test_files/test.env
    ```
 
 3. 確認事項:
@@ -413,14 +413,18 @@
 
 #### 6.2 複数の環境変数を含むファイルでのTUI表示
 
-1. 10個以上の環境変数を含むテスト用の.envファイルを作成し、暗号化後にエクスポートを実行
+1. 多数の環境変数を含むテストファイルを暗号化後、エクスポートを実行
 
    ```bash
-   ./envault export -f QA/multiple_vars.env.vaulted -s
+   # まず暗号化
+   ./envault QA/test_files/multiple_vars.env -f QA/test_files/multiple_vars.env.vaulted
+   
+   # そしてエクスポート
+   ./envault export -f QA/test_files/multiple_vars.env.vaulted -s
    # または
-   ./envault export --file QA/multiple_vars.env.vaulted --select
+   ./envault export --file QA/test_files/multiple_vars.env.vaulted --select
    # または
-   ./envault export select -f QA/multiple_vars.env.vaulted
+   ./envault export select -f QA/test_files/multiple_vars.env.vaulted
    ```
 
 2. 確認事項:
@@ -449,7 +453,7 @@
 1. コメント付きの環境変数ファイルを作成し、TUIモードでエクスポートを実行
 
    ```bash
-   cat > QA/comment_test.env << EOF
+   cat > QA/test_files/comment_test.env << EOF
    # This is a test variable
    TEST_COMMENT_VAR=value
 
@@ -458,8 +462,8 @@
    TEST_MULTILINE_COMMENT=value
    EOF
 
-   ./envault QA/comment_test.env -f QA/comment_test.env.vaulted
-   ./envault export -f QA/comment_test.env.vaulted -s
+   ./envault QA/test_files/comment_test.env -f QA/test_files/comment_test.env.vaulted
+   ./envault export -f QA/test_files/comment_test.env.vaulted -s
    ```
 
 2. 確認事項:
@@ -497,15 +501,15 @@
 1. 不正な形式の.env.vaultedファイルを用意
 
    ```bash
-   echo "invalid data" > QA/invalid.env.vaulted
+   echo "invalid data" > QA/test_files/invalid.env.vaulted
    ```
 
 2. エクスポートを実行
 
    ```bash
-   ./envault export -f QA/invalid.env.vaulted
+   ./envault export -f QA/test_files/invalid.env.vaulted
    # または
-   ./envault export --file QA/invalid.env.vaulted
+   ./envault export --file QA/test_files/invalid.env.vaulted
    ```
 
 3. 確認事項:
