@@ -13,8 +13,11 @@ envaultは以下の3つの主要コマンドをサポートします：
 3. `envault unset` - .env.vaultedファイルに記載された環境変数をアンセット
 
 追加オプション：
-- `--password-stdin` - パスワードを標準入力から読み込む（対話モードの代わりに）
-- `--file` - 使用する.env.vaultedファイルのパスを指定（デフォルトは現在のディレクトリの.env.vaulted）
+- `-p, -password-stdin` - パスワードを標準入力から読み込む（対話モードの代わりに）
+- `-f, -file` - 使用する.env.vaultedファイルのパスを指定（デフォルトは現在のディレクトリの.env.vaulted）
+- `-o, -output-script-only` - スクリプトのみを出力（情報メッセージなし）
+- `-n, -new-shell` - 新しいbashセッションを起動して環境変数を設定
+- `-s, -select` - 適用する環境変数をTUIで選択する
 
 ## アーキテクチャ
 

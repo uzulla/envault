@@ -50,6 +50,8 @@
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
 
    ```bash
+   eval $(./envault export -f QA/.env.vaulted -o)
+   # または
    eval $(./envault export --file QA/.env.vaulted --output-script-only)
    ```
 
@@ -70,6 +72,8 @@
 1. 以下のコマンドを実行
 
    ```bash
+   echo "password" | eval $(./envault export -f QA/.env.vaulted -p -o)
+   # または
    echo "password" | eval $(./envault export --file QA/.env.vaulted --password-stdin --output-script-only)
    ```
 
@@ -81,6 +85,8 @@
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
 
    ```bash
+   eval $(./envault export -f QA/.env.vaulted -s -o)
+   # または
    eval $(./envault export --file QA/.env.vaulted --select --output-script-only)
    ```
 
@@ -98,6 +104,8 @@
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
 
    ```bash
+   eval $(./envault export -f QA/.env.vaulted -s -o)
+   # または
    eval $(./envault export --file QA/.env.vaulted --select --output-script-only)
    ```
 
@@ -112,6 +120,8 @@
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
 
    ```bash
+   ./envault export -f QA/.env.vaulted -n
+   # または
    ./envault export --file QA/.env.vaulted --new-shell
    ```
 
@@ -126,6 +136,8 @@
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
 
    ```bash
+   ./envault export -f QA/.env.vaulted -s -n
+   # または
    ./envault export --file QA/.env.vaulted --select --new-shell
    ```
 
@@ -140,6 +152,8 @@
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
 
    ```bash
+   ./envault export -f QA/.env.vaulted -- env | grep TEST_VAR
+   # または
    ./envault export --file QA/.env.vaulted -- env | grep TEST_VAR
    ```
 
@@ -153,6 +167,8 @@
 1. 以下のコマンドを実行
 
    ```bash
+   ./envault export -f QA/.env.vaulted -s -- env | grep TEST_VAR
+   # または
    ./envault export --file QA/.env.vaulted --select -- env | grep TEST_VAR
    ```
 
@@ -166,6 +182,8 @@
 1. 以下のコマンドを実行
 
    ```bash
+   ./envault export -f QA/.env.vaulted -- bash -c "echo TEST_VAR1=$TEST_VAR1 TEST_VAR2=$TEST_VAR2"
+   # または
    ./envault export --file QA/.env.vaulted -- bash -c "echo TEST_VAR1=$TEST_VAR1 TEST_VAR2=$TEST_VAR2"
    ```
 
@@ -179,6 +197,8 @@
 1. 環境変数がエクスポートされた状態で以下のコマンドを実行
 
    ```bash
+   ./envault unset -f QA/.env.vaulted
+   # または
    ./envault unset --file QA/.env.vaulted
    ```
 
@@ -192,6 +212,8 @@
 1. 環境変数がエクスポートされた状態で以下のコマンドを実行
 
    ```bash
+   eval $(./envault unset -f QA/.env.vaulted -s -o)
+   # または
    eval $(./envault unset --file QA/.env.vaulted --select --output-script-only)
    ```
 
@@ -208,6 +230,8 @@
 1. 以下のコマンドを実行
 
    ```bash
+   echo "password" | ./envault unset -f QA/.env.vaulted -p
+   # または
    echo "password" | ./envault unset --file QA/.env.vaulted --password-stdin
    ```
 
@@ -221,6 +245,8 @@
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
 
    ```bash
+   ./envault dump -f QA/.env.vaulted
+   # または
    ./envault dump --file QA/.env.vaulted
    ```
 
@@ -234,6 +260,8 @@
 1. 以下のコマンドを実行
 
    ```bash
+   ./envault dump -f QA/.env.vaulted
+   # または
    ./envault dump --file QA/.env.vaulted
    ```
 
@@ -245,6 +273,8 @@
 1. 以下のコマンドを実行
 
    ```bash
+   ./envault dump -f QA/.env.vaulted > QA/decrypted.env
+   # または
    ./envault dump --file QA/.env.vaulted > QA/decrypted.env
    ```
 
@@ -257,6 +287,8 @@
 1. 以下のコマンドを実行
 
    ```bash
+   echo "password" | ./envault dump -f QA/.env.vaulted -p
+   # または
    echo "password" | ./envault dump --file QA/.env.vaulted --password-stdin
    ```
 
@@ -270,6 +302,8 @@
 1. 以下のコマンドを実行
 
    ```bash
+   ./envault export -f QA/.env.vaulted -s -n
+   # または
    ./envault export --file QA/.env.vaulted --select --new-shell
    ```
 
@@ -284,6 +318,8 @@
 1. 10個以上の環境変数を含むテスト用の.envファイルを作成し、暗号化後にエクスポートを実行
 
    ```bash
+   ./envault export -f QA/multiple.env.vaulted -s
+   # または
    ./envault export --file QA/multiple.env.vaulted --select
    ```
 
@@ -297,6 +333,8 @@
 1. TUIモードでエクスポートを実行し、`q`キーでキャンセル
 
    ```bash
+   ./envault export -f QA/.env.vaulted -s
+   # または
    ./envault export --file QA/.env.vaulted --select
    ```
 
@@ -322,6 +360,8 @@
 1. .env.vaultedファイルが存在しない状態でエクスポートを実行
 
    ```bash
+   ./envault export -f QA/nonexistent.env.vaulted
+   # または
    ./envault export --file QA/nonexistent.env.vaulted
    ```
 
@@ -339,6 +379,8 @@
 2. エクスポートを実行
 
    ```bash
+   ./envault export -f QA/invalid.env.vaulted
+   # または
    ./envault export --file QA/invalid.env.vaulted
    ```
 

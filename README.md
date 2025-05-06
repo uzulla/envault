@@ -41,6 +41,8 @@ go install github.com/uzulla/envault/cmd/envault@latest
 envault .env
 
 # 出力ファイル名を指定して暗号化
+envault .env -f /path/to/output.vaulted
+# または
 envault .env --file /path/to/output.vaulted
 ```
 
@@ -50,18 +52,24 @@ envault .env --file /path/to/output.vaulted
 
 ```bash
 # .env.vaultedファイルから環境変数をエクスポート（重要：evalまたはsourceで実行する必要があります）
-eval $(envault export --output-script-only)
+eval $(envault export -o)
 # または
-source <(envault export --output-script-only)
+eval $(envault export -output-script-only)
+# または
+source <(envault export -o)
 
 # 特定の暗号化ファイルから環境変数をエクスポート
+eval $(envault export -o -f /path/to/custom.vaulted)
+# または
 eval $(envault export --output-script-only --file /path/to/custom.vaulted)
 
 # stdinからパスワードを読み込んでエクスポート
+echo "password" | envault export -o -p | eval
+# または
 echo "password" | envault export --output-script-only --password-stdin | eval
 ```
 
-**注意**: この方法では、`envault export`コマンドはシェルスクリプトを出力するだけで、環境変数を直接設定しません。環境変数を実際に設定するには、上記のように`--output-script-only`フラグを使用して、`eval`または`source`コマンドで実行する必要があります。
+**注意**: この方法では、`envault export`コマンドはシェルスクリプトを出力するだけで、環境変数を直接設定しません。環境変数を実際に設定するには、上記のように`-o`または`--output-script-only`フラグを使用して、`eval`または`source`コマンドで実行する必要があります。
 
 #### 新しい方法（より簡単）
 
@@ -69,12 +77,18 @@ echo "password" | envault export --output-script-only --password-stdin | eval
 
 ```bash
 # 新しいbashセッションを起動して環境変数を設定
+envault export -n
+# または
 envault export --new-shell
 
 # 特定の暗号化ファイルから環境変数を設定して新しいbashセッションを起動
+envault export -n -f /path/to/custom.vaulted
+# または
 envault export --new-shell --file /path/to/custom.vaulted
 
 # stdinからパスワードを読み込んで新しいbashセッションを起動
+echo "password" | envault export -n -p
+# または
 echo "password" | envault export --new-shell --password-stdin
 ```
 
@@ -93,6 +107,8 @@ envault export -- docker-compose up
 envault export -- env | grep SECRET
 
 # 特定の暗号化ファイルから環境変数を設定してコマンドを実行
+envault export -f /path/to/custom.vaulted -- python script.py
+# または
 envault export --file /path/to/custom.vaulted -- python script.py
 ```
 
@@ -102,18 +118,24 @@ envault export --file /path/to/custom.vaulted -- python script.py
 
 ```bash
 # .env.vaultedファイルに記載された環境変数をアンセット（重要：evalまたはsourceで実行する必要があります）
+eval $(envault unset -o)
+# または
 eval $(envault unset --output-script-only)
 # または
-source <(envault unset --output-script-only)
+source <(envault unset -o)
 
 # 特定の暗号化ファイルに記載された環境変数をアンセット
+eval $(envault unset -o -f /path/to/custom.vaulted)
+# または
 eval $(envault unset --output-script-only --file /path/to/custom.vaulted)
 
 # stdinからパスワードを読み込んでアンセット
+echo "password" | envault unset -o -p | eval
+# または
 echo "password" | envault unset --output-script-only --password-stdin | eval
 ```
 
-**注意**: `envault unset`コマンドもシェルスクリプトを出力するだけで、環境変数を直接アンセットしません。環境変数を実際にアンセットするには、上記のように`--output-script-only`フラグを使用して、`eval`または`source`コマンドで実行する必要があります。
+**注意**: `envault unset`コマンドもシェルスクリプトを出力するだけで、環境変数を直接アンセットしません。環境変数を実際にアンセットするには、上記のように`-o`または`--output-script-only`フラグを使用して、`eval`または`source`コマンドで実行する必要があります。
 
 ### 暗号化されたファイルの内容を確認
 
@@ -122,12 +144,16 @@ echo "password" | envault unset --output-script-only --password-stdin | eval
 envault dump
 
 # 特定の暗号化ファイルの内容を表示
+envault dump -f /path/to/custom.vaulted
+# または
 envault dump --file /path/to/custom.vaulted
 
 # 復号化した内容をファイルに保存
 envault dump > decrypted.env
 
 # stdinからパスワードを読み込んで復号化
+echo "password" | envault dump -p
+# または
 echo "password" | envault dump --password-stdin
 ```
 
