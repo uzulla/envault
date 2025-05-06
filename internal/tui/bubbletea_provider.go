@@ -297,9 +297,9 @@ func (b *BubbleteaProvider) RunSelection(envVars []EnvVar) ([]EnvVar, error) {
 	
 	if m, ok := m.(model); ok {
 		if m.quitting || m.selectedResult == nil || len(m.selectedResult) == 0 {
-			// キャンセルされた場合、またはresultが空の場合は元の環境変数をすべて有効にして返す
+			// キャンセルされた場合はすべての環境変数を無効にして返す
 			for i := range envVars {
-				envVars[i].Enabled = true
+				envVars[i].Enabled = false
 			}
 			return envVars, nil
 		}
