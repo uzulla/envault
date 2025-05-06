@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -51,6 +52,7 @@ func (c *CLI) Run(args []string) error {
 
 	// フラグ定義 - パース時の問題を避けるためにContinueOnErrorを使用
 	globalFlags := flag.NewFlagSet("envault", flag.ContinueOnError)
+	globalFlags.SetOutput(ioutil.Discard) // パースエラーは呼び出し側で扱う
 
 	// フラグの設定
 	globalFlags.BoolVar(&c.passwordStdin, "password-stdin", false, "stdinからパスワードを読み込む")
@@ -296,6 +298,16 @@ func (c *CLI) runNewShell(envVars map[string]string, count int) error {
 	// 親プロセスの環境変数に影響を与えないために、子プロセス用の環境変数のみを設定
 	envSlice := os.Environ()
 	for k, v := range envVars {
+		prefix := k + "="
+		// 既に存在するエントリを除外
+		filtered := make([]string, 0, len(envSlice))
+		for _, e := range envSlice {
+			if !strings.HasPrefix(e, prefix) {
+				filtered = append(filtered, e)
+			}
+		}
+		// 新しい値を追加
+		envSlice = filtered
 		envSlice = append(envSlice, fmt.Sprintf("%s=%s", k, v))
 	}
 	
@@ -315,6 +327,16 @@ func (c *CLI) runCommand(envVars map[string]string, cmdArgs []string, count int)
 	// 親プロセスの環境変数に影響を与えないために、子プロセス用の環境変数のみを設定
 	envSlice := os.Environ()
 	for k, v := range envVars {
+		prefix := k + "="
+		// 既に存在するエントリを除外
+		filtered := make([]string, 0, len(envSlice))
+		for _, e := range envSlice {
+			if !strings.HasPrefix(e, prefix) {
+				filtered = append(filtered, e)
+			}
+		}
+		// 新しい値を追加
+		envSlice = filtered
 		envSlice = append(envSlice, fmt.Sprintf("%s=%s", k, v))
 	}
 	
