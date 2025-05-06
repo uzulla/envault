@@ -2,14 +2,13 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/spf13/cobra"
 	"github.com/uzulla/envault/internal/crypto"
 	"github.com/uzulla/envault/internal/env"
 	"github.com/uzulla/envault/internal/file"
@@ -34,6 +33,7 @@ const (
 )
 
 type CLI struct {
+	rootCmd       *cobra.Command
 	passwordStdin bool
 	vaultedFile   string
 	newShell      bool
@@ -41,77 +41,124 @@ type CLI struct {
 }
 
 func NewCLI() *CLI {
-	return &CLI{}
+	cli := &CLI{}
+	cli.setupCommands()
+	return cli
+}
+
+func (c *CLI) setupCommands() {
+	// ルートコマンド
+	c.rootCmd = &cobra.Command{
+		Use:     "envault [オプション] <.envファイル>",
+		Short:   "環境変数を暗号化して管理するツール",
+		Version: Version,
+		Long: `envault は環境変数を安全に管理するためのツールです。
+.env ファイルを暗号化し、必要に応じて環境変数をエクスポート/アンセットします。`,
+		Args: cobra.ArbitraryArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return cmd.Help()
+			}
+			// 最初の引数は .env ファイルパスとして扱う
+			return c.runEncrypt(args[0])
+		},
+		SilenceUsage: true,
+	}
+
+	// 共通フラグ
+	c.rootCmd.PersistentFlags().BoolVarP(&c.passwordStdin, "password-stdin", "p", false, "stdinからパスワードを読み込む")
+	c.rootCmd.PersistentFlags().StringVarP(&c.vaultedFile, "file", "f", "", "使用する.env.vaultedファイルのパス")
+
+	// export コマンド
+	exportCmd := &cobra.Command{
+		Use:   "export [オプション] [-- <コマンド> [引数...]]",
+		Short: ".env.vaultedファイルから環境変数をエクスポート",
+		Long: `暗号化された .env.vaulted ファイルから環境変数をエクスポートします。
+- スクリプト評価方式: eval $(envault export -o)
+- 新しいシェル方式: envault export -n
+- コマンド実行方式: envault export -- node app.js`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var cmdArgs []string
+			if cmd.ArgsLenAtDash() != -1 {
+				cmdArgs = args[cmd.ArgsLenAtDash():]
+			}
+
+			outputScriptOnly, _ := cmd.Flags().GetBool("output-script-only")
+			return c.runWithVaultedFile(ExportMode, outputScriptOnly, cmdArgs)
+		},
+	}
+
+	exportCmd.Flags().BoolVarP(&c.selectVars, "select", "s", false, "適用する環境変数をTUIで選択する")
+	exportCmd.Flags().BoolP("output-script-only", "o", false, "スクリプトのみを出力（情報メッセージなし）")
+	exportCmd.Flags().BoolVarP(&c.newShell, "new-shell", "n", false, "新しいbashセッションを起動して環境変数を設定")
+	c.rootCmd.AddCommand(exportCmd)
+
+	// select サブコマンド
+	selectCmd := &cobra.Command{
+		Use:   "select [オプション] [-- <コマンド> [引数...]]",
+		Short: "環境変数を選択してからエクスポート",
+		Long:  "TUIインターフェースを使用して環境変数を選択的にエクスポートします。",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c.selectVars = true
+			var cmdArgs []string
+			if cmd.ArgsLenAtDash() != -1 {
+				cmdArgs = args[cmd.ArgsLenAtDash():]
+			}
+
+			outputScriptOnly, _ := cmd.Flags().GetBool("output-script-only")
+			return c.runWithVaultedFile(ExportMode, outputScriptOnly, cmdArgs)
+		},
+	}
+
+	selectCmd.Flags().BoolP("output-script-only", "o", false, "スクリプトのみを出力（情報メッセージなし）")
+	selectCmd.Flags().BoolVarP(&c.newShell, "new-shell", "n", false, "新しいbashセッションを起動して環境変数を設定")
+	exportCmd.AddCommand(selectCmd)
+
+	// unset コマンド
+	unsetCmd := &cobra.Command{
+		Use:   "unset [オプション]",
+		Short: ".env.vaultedファイルに記載された環境変数をアンセット",
+		Long: `.env.vaulted ファイルに記載された環境変数をアンセットします。
+- スクリプト評価方式: eval $(envault unset -o)
+- source方式: source <(envault unset --output-script-only)`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			outputScriptOnly, _ := cmd.Flags().GetBool("output-script-only")
+			return c.runWithVaultedFile(UnsetMode, outputScriptOnly, nil)
+		},
+	}
+
+	unsetCmd.Flags().BoolVarP(&c.selectVars, "select", "s", false, "適用する環境変数をTUIで選択する")
+	unsetCmd.Flags().BoolP("output-script-only", "o", false, "スクリプトのみを出力（情報メッセージなし）")
+	c.rootCmd.AddCommand(unsetCmd)
+
+	// dump コマンド
+	dumpCmd := &cobra.Command{
+		Use:   "dump [オプション]",
+		Short: ".env.vaultedファイルを復号化して内容を表示",
+		Long: `.env.vaulted ファイルを復号化して内容を表示します。
+復号化した内容をリダイレクトしてファイルに保存することもできます: envault dump > decrypted.env`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return c.runDump()
+		},
+	}
+	c.rootCmd.AddCommand(dumpCmd)
+
+	// version コマンド
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "バージョン情報を表示",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("envault version %s\n", Version)
+		},
+	}
+	c.rootCmd.AddCommand(versionCmd)
+
+	// ヘルプとバージョン情報は cobra が自動的に処理
 }
 
 func (c *CLI) Run(args []string) error {
-	if len(args) < 1 {
-		c.printUsage()
-		return nil
-	}
-
-	// フラグ定義 - パース時の問題を避けるためにContinueOnErrorを使用
-	globalFlags := flag.NewFlagSet("envault", flag.ContinueOnError)
-	globalFlags.SetOutput(ioutil.Discard) // パースエラーは呼び出し側で扱う
-
-	// フラグの設定
-	globalFlags.BoolVar(&c.passwordStdin, "password-stdin", false, "stdinからパスワードを読み込む")
-	globalFlags.StringVar(&c.vaultedFile, "file", "", "使用する.env.vaultedファイルのパス") 
-	
-	var outputScriptOnly bool
-	globalFlags.BoolVar(&outputScriptOnly, "output-script-only", false, "スクリプトのみを出力（情報メッセージなし）")
-	globalFlags.BoolVar(&c.newShell, "new-shell", false, "新しいbashセッションを起動して環境変数を設定")
-	
-	// selectフラグを明示的に定義
-	globalFlags.BoolVar(&c.selectVars, "select", false, "適用する環境変数をTUIで選択する")
-
-	command := args[0]
-
-	switch command {
-	case "help", "-h", "--help":
-		c.printUsage()
-		return nil
-	case "version", "-v", "--version":
-		fmt.Printf("envault version %s\n", Version)
-		return nil
-	case "export":
-		var cmdArgs []string
-		dashDashIndex := -1
-		for i, arg := range args {
-			if arg == "--" && i > 0 {
-				dashDashIndex = i
-				break
-			}
-		}
-		
-		if dashDashIndex != -1 {
-			cmdArgs = args[dashDashIndex+1:]
-			if err := globalFlags.Parse(args[1:dashDashIndex]); err != nil {
-				return err
-			}
-			return c.runWithVaultedFile(ExportMode, outputScriptOnly, cmdArgs)
-		} else {
-			if err := globalFlags.Parse(args[1:]); err != nil {
-				return err
-			}
-			return c.runWithVaultedFile(ExportMode, outputScriptOnly, nil)
-		}
-	case "unset":
-		if err := globalFlags.Parse(args[1:]); err != nil {
-			return err
-		}
-		return c.runWithVaultedFile(UnsetMode, outputScriptOnly, nil)
-	case "dump":
-		if err := globalFlags.Parse(args[1:]); err != nil {
-			return err
-		}
-		return c.runDump()
-	default:
-		if err := globalFlags.Parse(args[1:]); err != nil {
-			return err
-		}
-		return c.runEncrypt(command)
-	}
+	c.rootCmd.SetArgs(args)
+	return c.rootCmd.Execute()
 }
 
 func (c *CLI) runEncrypt(envFilePath string) error {
@@ -379,51 +426,4 @@ func (c *CLI) runDump() error {
 func (c *CLI) selectEnvironmentVariables(envVars []tui.EnvVar) ([]tui.EnvVar, error) {
 	// デフォルトではBubbleteaを使用
 	return tui.EnvVarSelection(envVars, tui.BubbleteaTUI)
-}
-
-func (c *CLI) printUsage() {
-	fmt.Println(`使用方法:
-  envault [オプション] <.envファイル>  .envファイルを暗号化して.env.vaultedファイルを作成
-  envault export [オプション]          .env.vaultedファイルから環境変数をエクスポート
-  envault export [オプション] -- <コマンド> [引数...]  環境変数を設定して指定したコマンドを実行
-  envault unset [オプション]           .env.vaultedファイルに記載された環境変数をアンセット
-  envault dump [オプション]            .env.vaultedファイルを復号化して内容を表示
-  envault help                        ヘルプを表示
-  envault version                     バージョン情報を表示
-
-オプション:
-  --password-stdin                    stdinからパスワードを読み込む
-  --file <ファイルパス>               使用する.env.vaultedファイルのパス（デフォルト: .env.vaulted）
-  --output-script-only                スクリプトのみを出力（情報メッセージなし）
-  --new-shell                         新しいbashセッションを起動して環境変数を設定
-  --select                            適用する環境変数をTUIで選択する
-
-例:
-  envault .env                        .envファイルを暗号化
-  
-  # 環境変数をエクスポートする方法:
-  envault export                      エクスポートスクリプトのパスを表示
-  eval $(envault export --output-script-only)  環境変数を直接エクスポート
-  source <(envault export --output-script-only)  環境変数を直接エクスポート（別の方法）
-  
-  # 新しい方法で環境変数を使用する:
-  envault export --new-shell          新しいbashセッションを起動して環境変数を設定
-  envault export -- node app.js       環境変数を設定してnodeコマンドを実行
-  envault export -- docker-compose up 環境変数を設定してdocker-composeを実行
-  
-  # 環境変数を選択的に適用する方法:
-  envault export --select             TUIで環境変数を選択してからエクスポート
-  envault export --select --new-shell TUIで環境変数を選択してから新しいbashセッションを起動
-  envault export --select -- npm start TUIで環境変数を選択してからコマンドを実行
-  
-  echo "password" | envault export --password-stdin  stdinからパスワードを読み込んでエクスポート
-  
-  # 環境変数をアンセットする方法:
-  envault unset                       アンセットスクリプトのパスを表示
-  eval $(envault unset --output-script-only)  環境変数を直接アンセット
-  source <(envault unset --output-script-only)  環境変数を直接アンセット（別の方法）
-  
-  # 暗号化されたファイルの内容を確認する方法:
-  envault dump                        .env.vaultedファイルの内容を表示
-  envault dump > decrypted.env        復号化した内容をファイルに保存`)
 }
