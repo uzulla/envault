@@ -82,6 +82,7 @@ type model struct {
 	width          int
 	height         int
 	selectedResult []EnvVar
+	showFullHelp   bool
 }
 
 // スタイル設定
@@ -97,7 +98,7 @@ var (
 
 // 初期化関数
 func initialModel(envVars []EnvVar) model {
-	h := help.New()
+	helpModel := help.New()
 	selected := make(map[string]bool)
 
 	// デフォルトですべての環境変数を有効にする
@@ -106,18 +107,32 @@ func initialModel(envVars []EnvVar) model {
 		selected[ev.Key] = true
 	}
 
-	vp := viewport.New(80, len(envVars)+2)
+	// デフォルトサイズを設定
+	width := 80
+	height := 30
+
+	// 項目数と画面サイズに応じてviewportの高さを決定
+	viewportHeight := len(envVars) + 2
+	if viewportHeight > height-4 {
+		viewportHeight = height - 4
+	}
+	if viewportHeight < 1 {
+		viewportHeight = 1
+	}
+
+	vp := viewport.New(width, viewportHeight)
 	vp.SetContent(renderItems(envVars, selected, 0))
 
 	return model{
-		envVars:  envVars,
-		cursor:   0,
-		selected: selected,
-		viewport: vp,
-		help:     h,
-		keys:     keys,
-		width:    80,
-		height:   30,
+		envVars:      envVars,
+		cursor:       0,
+		selected:     selected,
+		viewport:     vp,
+		help:         helpModel,
+		keys:         keys,
+		width:        width,
+		height:       height,
+		showFullHelp: false,
 	}
 }
 
@@ -188,14 +203,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keys.Up):
 			if m.cursor > 0 {
 				m.cursor--
+				// 選択項目が表示領域外に移動した場合、スクロール位置を調整
+				if m.cursor < m.viewport.YOffset {
+					m.viewport.SetYOffset(m.cursor)
+				}
 			}
 
 		case key.Matches(msg, m.keys.Down):
 			if m.cursor < len(m.envVars)-1 {
 				m.cursor++
+				// 選択項目が表示領域外に移動した場合、スクロール位置を調整
+				if m.cursor >= m.viewport.YOffset+m.viewport.Height {
+					m.viewport.SetYOffset(m.cursor - m.viewport.Height + 1)
+				}
 			}
 
+		case key.Matches(msg, m.keys.Help):
+			// ヘルプ表示の切り替え
+			m.showFullHelp = !m.showFullHelp
+
 		case key.Matches(msg, m.keys.Toggle):
+			if len(m.envVars) == 0 {
+				break
+			}
 			key := m.envVars[m.cursor].Key
 			m.selected[key] = !m.selected[key]
 			m.envVars[m.cursor].Enabled = m.selected[key]
@@ -215,7 +245,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.viewport.Width = msg.Width
-		m.viewport.Height = msg.Height - 4 // ヘルプ表示のためのスペースを確保
+		
+		// ヘルプ表示のためのスペースを確保し、最小値を1に制限
+		viewportHeight := msg.Height - 4
+		if viewportHeight < 1 {
+			viewportHeight = 1
+		}
+		m.viewport.Height = viewportHeight
 		m.help.Width = msg.Width
 	}
 
@@ -229,7 +265,14 @@ func (m model) View() string {
 		return ""
 	}
 
-	return fmt.Sprintf("%s\n\n%s", m.viewport.View(), m.help.View(m.keys))
+	var helpView string
+	if m.showFullHelp {
+		helpView = m.help.FullHelpView(m.keys.FullHelp())
+	} else {
+		helpView = m.help.View(m.keys)
+	}
+
+	return fmt.Sprintf("%s\n\n%s", m.viewport.View(), helpView)
 }
 
 // RunSelection は環境変数選択UIを実行し、選択された環境変数を返します

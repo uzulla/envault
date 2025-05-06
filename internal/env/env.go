@@ -6,83 +6,141 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/joho/godotenv"
 	"github.com/uzulla/envault/internal/tui"
 )
 
-// 環境変数をキーと値のマップとして解析します
-func ParseEnvContent(content []byte) (map[string]string, error) {
-	envVars, err := godotenv.Parse(bytes.NewReader(content))
-	if err != nil {
-		return nil, fmt.Errorf(".envファイルの解析に失敗しました: %w", err)
+// .envファイルの内容をパースして環境変数のマップを返します
+func ParseEnvContent(data []byte) (map[string]string, error) {
+	envVars := make(map[string]string)
+	
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		
+		// 空行やコメント行をスキップ
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		
+		// = がない行を不正として無視
+		if !strings.Contains(line, "=") {
+			continue
+		}
+		
+		// Key=Value の形式を解析
+		parts := strings.SplitN(line, "=", 2)
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		
+		// クォーテーションを削除
+		if (strings.HasPrefix(value, "\"") && strings.HasSuffix(value, "\"")) ||
+			(strings.HasPrefix(value, "'") && strings.HasSuffix(value, "'")) {
+			value = value[1 : len(value)-1]
+		}
+		
+		envVars[key] = value
+	}
+	
+	if err := scanner.Err(); err != nil {
+		return nil, err
 	}
 	
 	return envVars, nil
 }
 
-// コメントを含む環境変数をEnvVar構造体のスライスとして解析します
-func ParseEnvContentWithComments(content []byte) ([]tui.EnvVar, error) {
-	// 基本的な環境変数の解析
-	envVarsMap, err := godotenv.Parse(bytes.NewReader(content))
+// .envファイルの内容をパースして環境変数リストを返します（コメント付き）
+func ParseEnvContentWithComments(data []byte) ([]tui.EnvVar, error) {
+	var result []tui.EnvVar
+	var orderedKeys []string // 環境変数の出現順を保持
+	
+	envVarsMap, err := ParseEnvContent(data)
 	if err != nil {
-		return nil, fmt.Errorf(".envファイルの解析に失敗しました: %w", err)
+		return nil, err
 	}
 	
-	// 先行コメントを保持するマップ
-	commentMap := make(map[string]string)
-	
-	// 行ごとに解析してコメントを抽出
-	scanner := bufio.NewScanner(bytes.NewReader(content))
+	// コメントを再度スキャンして環境変数に関連付ける
+	scanner := bufio.NewScanner(bytes.NewReader(data))
 	var lastComment string
 	
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		
-		// コメント行の場合
+		// コメント行を保存（複数行のコメントを連結）
 		if strings.HasPrefix(line, "#") {
-			lastComment = strings.TrimSpace(strings.TrimPrefix(line, "#"))
+			comment := strings.TrimPrefix(line, "#")
+			comment = strings.TrimSpace(comment)
+			
+			// 複数行のコメントを連結
+			if lastComment != "" {
+				lastComment += " " + comment
+			} else {
+				lastComment = comment
+			}
 			continue
 		}
 		
-		// 空行の場合はコメントをリセット
-		if line == "" {
-			lastComment = ""
-			continue
-		}
-		
-		// 環境変数の行の場合
+		// Key=Value の行を処理
 		if strings.Contains(line, "=") {
 			parts := strings.SplitN(line, "=", 2)
 			key := strings.TrimSpace(parts[0])
 			
-			// コメントがあればマップに保存
-			if lastComment != "" {
-				commentMap[key] = lastComment
-				lastComment = ""
+			// マップから値を取得し、出現順を保持
+			if value, exists := envVarsMap[key]; exists {
+				// 同じキーが複数回出現した場合は最後の値を使用
+				// ただし順序リストには一度だけ追加
+				alreadyAdded := false
+				for _, existingKey := range orderedKeys {
+					if existingKey == key {
+						alreadyAdded = true
+						break
+					}
+				}
+				
+				if !alreadyAdded {
+					orderedKeys = append(orderedKeys, key)
+				}
+				
+				// 最後の値を使って環境変数オブジェクトを作成（上書き）
+				var existingIndex = -1
+				for i, ev := range result {
+					if ev.Key == key {
+						existingIndex = i
+						break
+					}
+				}
+				
+				newEnv := tui.EnvVar{
+					Key:     key,
+					Value:   value,
+					Comment: lastComment,
+					Enabled: true,
+				}
+				
+				if existingIndex >= 0 {
+					// 既存の項目を更新
+					result[existingIndex] = newEnv
+				} else {
+					// 新しい項目を追加
+					result = append(result, newEnv)
+				}
+				
+				lastComment = "" // コメントをリセット
 			}
+		} else {
+			lastComment = "" // Key=Value の形式でない行ではコメントをリセット
 		}
-	}
-	
-	// 環境変数とコメントを結合
-	var result []tui.EnvVar
-	for key, value := range envVarsMap {
-		result = append(result, tui.EnvVar{
-			Key:     key,
-			Value:   value,
-			Comment: commentMap[key],
-			Enabled: true, // デフォルトで有効
-		})
 	}
 	
 	return result, nil
 }
 
+// エクスポート用のスクリプトを生成します
 func GenerateExportScript(envVars map[string]string) string {
 	var script strings.Builder
 	script.WriteString("#!/bin/bash\n\n")
 	
 	for key, value := range envVars {
-		if strings.ContainsAny(value, " \t\n\r\"'`$&|;<>(){}[]") {
+		if strings.ContainsAny(value, " \t\n\r\"'`$&|;<>(){}[]\\") {
 			script.WriteString(fmt.Sprintf("export %s=\"%s\"\n", key, escapeValue(value)))
 		} else {
 			script.WriteString(fmt.Sprintf("export %s=%s\n", key, value))
@@ -102,7 +160,7 @@ func GenerateExportScriptFromEnvVarList(envVars []tui.EnvVar) string {
 			continue // 無効な環境変数はスキップ
 		}
 		
-		if strings.ContainsAny(ev.Value, " \t\n\r\"'`$&|;<>(){}[]") {
+		if strings.ContainsAny(ev.Value, " \t\n\r\"'`$&|;<>(){}[]\\") {
 			script.WriteString(fmt.Sprintf("export %s=\"%s\"\n", ev.Key, escapeValue(ev.Value)))
 		} else {
 			script.WriteString(fmt.Sprintf("export %s=%s\n", ev.Key, ev.Value))
@@ -125,7 +183,7 @@ func FilterEnabledEnvVars(envVars []tui.EnvVar) map[string]string {
 	return result
 }
 
-// 有効な環境変数の数を数えます
+// 有効な環境変数の数をカウントします
 func CountEnabledEnvVars(envVars []tui.EnvVar) int {
 	count := 0
 	for _, ev := range envVars {
@@ -136,6 +194,7 @@ func CountEnabledEnvVars(envVars []tui.EnvVar) int {
 	return count
 }
 
+// アンセット用のスクリプトを生成します
 func GenerateUnsetScript(envVars map[string]string) string {
 	var script strings.Builder
 	script.WriteString("#!/bin/bash\n\n")
@@ -153,19 +212,17 @@ func GenerateUnsetScriptFromEnvVarList(envVars []tui.EnvVar) string {
 	script.WriteString("#!/bin/bash\n\n")
 	
 	for _, ev := range envVars {
-		if ev.Enabled {
-			script.WriteString(fmt.Sprintf("unset %s\n", ev.Key))
+		if !ev.Enabled {
+			continue // 無効な環境変数はスキップ
 		}
+		
+		script.WriteString(fmt.Sprintf("unset %s\n", ev.Key))
 	}
 	
 	return script.String()
 }
 
+// シェルスクリプト内でのエスケープ処理を行います
 func escapeValue(value string) string {
-	value = strings.ReplaceAll(value, "\\", "\\\\")
-	value = strings.ReplaceAll(value, "\"", "\\\"")
-	value = strings.ReplaceAll(value, "`", "\\`")
-	value = strings.ReplaceAll(value, "$", "\\$")
-	
-	return value
+	return strings.ReplaceAll(value, "\"", "\\\"")
 }
