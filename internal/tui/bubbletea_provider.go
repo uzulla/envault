@@ -8,7 +8,6 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // BubbleteaProvider はBubbleteaライブラリを使用したSelectionProviderの実装です
@@ -40,7 +39,7 @@ var keys = keyMap{
 		key.WithHelp("↓/j", "下へ"),
 	),
 	Toggle: key.NewBinding(
-		key.WithKeys("space"),
+		key.WithKeys(" ", "space"),
 		key.WithHelp("space", "選択/解除"),
 	),
 	Help: key.NewBinding(
@@ -85,16 +84,7 @@ type model struct {
 	showFullHelp   bool
 }
 
-// スタイル設定
-var (
-	titleStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Bold(true)
-	cursorStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	selectedItemStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("170"))
-	normalItemStyle   = lipgloss.NewStyle()
-	checkedStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
-	uncheckedStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
-	commentStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-)
+// 注: スタイル設定は使用していません
 
 // 初期化関数
 func initialModel(envVars []EnvVar) model {
@@ -104,7 +94,7 @@ func initialModel(envVars []EnvVar) model {
 	// デフォルトですべての環境変数を有効にする
 	for i, ev := range envVars {
 		envVars[i].Enabled = true
-		selected[ev.Key] = true
+		selected[ev.Key] = true // 初期状態ではすべて選択済み
 	}
 
 	// デフォルトサイズを設定
@@ -139,45 +129,52 @@ func initialModel(envVars []EnvVar) model {
 // カーソルマークを返す
 func cursorMark(i, cursor int) string {
 	if i == cursor {
-		return cursorStyle.Render("> ")
+		return ">"
 	}
-	return "  "
+	return " "
 }
 
 // チェックボックスマークを返す
 func checkMark(selected bool) string {
 	if selected {
-		return checkedStyle.Render("[✓]")
+		// 選択されている場合は明確なチェックマーク
+		return "[✓]"
 	}
-	return uncheckedStyle.Render("[ ]")
+	// 選択されていない場合は空のボックス
+	return "[ ]"
 }
 
 // アイテムリストをレンダリング
 func renderItems(envVars []EnvVar, selected map[string]bool, cursor int) string {
 	var b strings.Builder
 
-	b.WriteString(titleStyle.Render("適用する環境変数を選択してください\n\n"))
+	b.WriteString("適用する環境変数を選択してください\n\n")
 
+	// すべての項目を完全に固定フォーマットでレンダリング（スタイル無し）
 	for i, ev := range envVars {
 		isSelected := selected[ev.Key]
-		cursorMrk := cursorMark(i, cursor)
-		check := checkMark(isSelected)
-
-		// 環境変数の表示
-		keyValueText := fmt.Sprintf("%s %s %s", cursorMrk, check, ev.Key)
 		
-		// カーソル位置にあるアイテムをハイライト
+		// 固定の左マージン（多くの行で同じマージンを使用）
+		b.WriteString("   ")
+		
+		// カーソル表示（スタイル無し）
 		if i == cursor {
-			keyValueText = selectedItemStyle.Render(keyValueText)
+			b.WriteString("> ")
 		} else {
-			keyValueText = normalItemStyle.Render(keyValueText)
+			b.WriteString("  ")
 		}
-
-		b.WriteString(keyValueText)
-
-		// コメントがある場合は表示
+		
+		// チェックボックス - 確実に現在の選択状態を反映
+		check := checkMark(isSelected)
+		// 選択状態がわかりやすいよう、チェックボックスとその前後にスペースを入れる
+		b.WriteString(check + " ")
+		
+		// 環境変数名（スタイル無し）
+		b.WriteString(ev.Key)
+		
+		// コメント（スタイル無し）
 		if ev.Comment != "" {
-			b.WriteString(" " + commentStyle.Render("- "+ev.Comment))
+			b.WriteString(" - " + ev.Comment)
 		}
 		
 		b.WriteString("\n")
@@ -226,15 +223,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(m.envVars) == 0 {
 				break
 			}
+			// カーソル位置の環境変数のキーを取得
 			key := m.envVars[m.cursor].Key
-			m.selected[key] = !m.selected[key]
-			m.envVars[m.cursor].Enabled = m.selected[key]
+			// 現在の状態を取得し、確実に反転する
+			currentState, ok := m.selected[key]
+			if !ok {
+				// マップに存在しない場合は初期化
+				currentState = true // デフォルトで有効
+			}
+			newState := !currentState
+			// マップとEnvVar構造体の両方を更新
+			m.selected[key] = newState
+			m.envVars[m.cursor].Enabled = newState
+			
+			// 更新をUIに反映させるために明示的にコンテンツを再設定
+			m.viewport.SetContent(renderItems(m.envVars, m.selected, m.cursor))
 
 		case key.Matches(msg, m.keys.Select):
 			// 選択された環境変数を結果として設定
 			var selectedEnvVars []EnvVar
 			for i, ev := range m.envVars {
-				m.envVars[i].Enabled = m.selected[ev.Key]
+				// 強制的にマップの値を使用して設定
+				isSelected := m.selected[ev.Key]
+				m.envVars[i].Enabled = isSelected
 				selectedEnvVars = append(selectedEnvVars, m.envVars[i])
 			}
 			m.selectedResult = selectedEnvVars
@@ -286,9 +297,9 @@ func (b *BubbleteaProvider) RunSelection(envVars []EnvVar) ([]EnvVar, error) {
 	
 	if m, ok := m.(model); ok {
 		if m.quitting || m.selectedResult == nil || len(m.selectedResult) == 0 {
-			// キャンセルされた場合、またはresultが空の場合は元の環境変数をすべて有効にして返す
+			// キャンセルされた場合はすべての環境変数を無効にして返す
 			for i := range envVars {
-				envVars[i].Enabled = true
+				envVars[i].Enabled = false
 			}
 			return envVars, nil
 		}

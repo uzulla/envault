@@ -276,6 +276,12 @@ func (c *CLI) processWithTUI(mode CommandMode, decryptedData []byte, outputScrip
 
 	// 有効な環境変数の数をマップの長さから取得
 	enabledCount := len(envVars)
+	
+	// キャンセルされた場合（有効な環境変数が0の場合）は処理を中止
+	if enabledCount == 0 {
+		fmt.Fprintf(os.Stderr, "操作がキャンセルされました\n")
+		return nil
+	}
 
 	// モードに応じた処理
 	switch mode {
