@@ -574,3 +574,24 @@
 | 2.1        |          |            |      |      |
 | ...        |          |            |      |      |
 | 8.2        |          |            |      |      |
+
+## テスト後のクリーンアップ
+
+テスト完了後、以下のコマンドを実行して作成した一時ファイルをクリーンアップしてください。
+
+```bash
+# テスト中に作成した暗号化ファイルや一時ファイルを削除
+rm -f QA/test_files/.env.vaulted
+rm -f QA/test_files/custom.vaulted
+rm -f QA/test_files/multiple_vars.env.vaulted
+rm -f QA/test_files/comment_test.env
+rm -f QA/test_files/comment_test.env.vaulted
+rm -f QA/test_files/invalid.env.vaulted
+rm -f QA/test_files/decrypted.env
+rm -f QA/test_files/generated_test.env
+rm -f QA/test_files/test2.env
+rm -f QA/test_files/test2.env.vaulted
+
+# QA/test_files ディレクトリ内の設定されていないテストファイルのみが残るようにします
+ls -la QA/test_files/
+```
