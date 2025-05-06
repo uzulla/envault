@@ -216,8 +216,8 @@ func (c *CLI) processWithTUI(mode CommandMode, decryptedData []byte, outputScrip
 	// 有効な環境変数のみをマップに変換
 	envVars := env.FilterEnabledEnvVars(selectedEnvVars)
 
-	// 選択された環境変数の数をカウント
-	enabledCount := env.CountEnabledEnvVars(selectedEnvVars)
+	// 有効な環境変数の数をマップの長さから取得
+	enabledCount := len(envVars)
 
 	// モードに応じた処理
 	switch mode {
