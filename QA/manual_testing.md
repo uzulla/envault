@@ -15,12 +15,12 @@
 
 #### 1.1 基本的な暗号化
 1. QAディレクトリのテスト用の.envファイルを使用
-   ```
+   ```env
    TEST_VAR1=value1
    TEST_VAR2=value2
    ```
 2. 以下のコマンドを実行
-   ```
+   ```bash
    ./envault QA/test.env
    ```
 3. 確認事項:
@@ -39,7 +39,7 @@
 
 #### 2.1 基本的なエクスポート（従来の方法）
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
-   ```
+   ```bash
    eval $(./envault export --file QA/.env.vaulted --output-script-only)
    ```
 2. 確認事項:
@@ -55,7 +55,7 @@
 
 #### 2.3 stdinからのパスワード入力
 1. 以下のコマンドを実行
-   ```
+   ```bash
    echo "password" | eval $(./envault export --file QA/.env.vaulted --password-stdin --output-script-only)
    ```
 2. 確認事項:
@@ -63,7 +63,7 @@
 
 #### 2.4 TUIを使用した選択的エクスポート
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
-   ```
+   ```bash
    eval $(./envault export --file QA/.env.vaulted --select --output-script-only)
    ```
 2. 確認事項:
@@ -77,7 +77,7 @@
 
 #### 2.5 TUIを使用した選択的エクスポート（キャンセル）
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
-   ```
+   ```bash
    eval $(./envault export --file QA/.env.vaulted --select --output-script-only)
    ```
 2. 確認事項:
@@ -88,7 +88,7 @@
 
 #### 2.6 新しいbashセッションの起動
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
-   ```
+   ```bash
    ./envault export --file QA/.env.vaulted --new-shell
    ```
 2. 確認事項:
@@ -99,7 +99,7 @@
 
 #### 2.7 TUIで選択して新しいbashセッションを起動
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
-   ```
+   ```bash
    ./envault export --file QA/.env.vaulted --select --new-shell
    ```
 2. 確認事項:
@@ -110,7 +110,7 @@
 
 #### 2.8 コマンド実行オプション
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
-   ```
+   ```bash
    ./envault export --file QA/.env.vaulted -- env | grep TEST_VAR
    ```
 2. 確認事項:
@@ -120,7 +120,7 @@
 
 #### 2.9 TUIで選択してコマンド実行
 1. 以下のコマンドを実行
-   ```
+   ```bash
    ./envault export --file QA/.env.vaulted --select -- env | grep TEST_VAR
    ```
 2. 確認事項:
@@ -130,7 +130,7 @@
 
 #### 2.10 複雑なコマンド実行
 1. 以下のコマンドを実行
-   ```
+   ```bash
    ./envault export --file QA/.env.vaulted -- bash -c "echo TEST_VAR1=$TEST_VAR1 TEST_VAR2=$TEST_VAR2"
    ```
 2. 確認事項:
@@ -140,7 +140,7 @@
 
 #### 3.1 基本的なアンセット
 1. 環境変数がエクスポートされた状態で以下のコマンドを実行
-   ```
+   ```bash
    ./envault unset --file QA/.env.vaulted
    ```
 2. 確認事項:
@@ -150,7 +150,7 @@
 
 #### 3.2 TUIを使用した選択的アンセット
 1. 環境変数がエクスポートされた状態で以下のコマンドを実行
-   ```
+   ```bash
    eval $(./envault unset --file QA/.env.vaulted --select --output-script-only)
    ```
 2. 確認事項:
@@ -163,7 +163,7 @@
 
 #### 3.3 stdinからのパスワード入力
 1. 以下のコマンドを実行
-   ```
+   ```bash
    echo "password" | ./envault unset --file QA/.env.vaulted --password-stdin
    ```
 2. 確認事項:
@@ -173,7 +173,7 @@
 
 #### 4.1 基本的なダンプ
 1. 暗号化されたQA/.env.vaultedファイルがある状態で以下のコマンドを実行
-   ```
+   ```bash
    ./envault dump --file QA/.env.vaulted
    ```
 2. 確認事項:
@@ -183,7 +183,7 @@
 
 #### 4.2 カスタムファイルのダンプ
 1. 以下のコマンドを実行
-   ```
+   ```bash
    ./envault dump --file QA/.env.vaulted
    ```
 2. 確認事項:
@@ -191,7 +191,7 @@
 
 #### 4.3 出力のリダイレクト
 1. 以下のコマンドを実行
-   ```
+   ```bash
    ./envault dump --file QA/.env.vaulted > QA/decrypted.env
    ```
 2. 確認事項:
@@ -200,7 +200,7 @@
 
 #### 4.4 stdinからのパスワード入力
 1. 以下のコマンドを実行
-   ```
+   ```bash
    echo "password" | ./envault dump --file QA/.env.vaulted --password-stdin
    ```
 2. 確認事項:
@@ -210,7 +210,7 @@
 
 #### 5.1 TUIインターフェースの応答性
 1. 以下のコマンドを実行
-   ```
+   ```bash
    ./envault export --file QA/.env.vaulted --select --new-shell
    ```
 2. 確認事項:
@@ -221,7 +221,7 @@
 
 #### 5.2 複数の環境変数を含むファイルでのTUI表示
 1. 10個以上の環境変数を含むテスト用の.envファイルを作成し、暗号化後にエクスポートを実行
-   ```
+   ```bash
    ./envault export --file QA/multiple.env.vaulted --select
    ```
 2. 確認事項:
@@ -231,7 +231,7 @@
 
 #### 5.3 TUIのキャンセル操作
 1. TUIモードでエクスポートを実行し、`q`キーでキャンセル
-   ```
+   ```bash
    ./envault export --file QA/.env.vaulted --select
    ```
 2. 確認事項:
@@ -242,7 +242,7 @@
 
 #### 6.1 存在しない.envファイルの暗号化
 1. 存在しない.envファイルを指定して暗号化を実行
-   ```
+   ```bash
    ./envault QA/nonexistent.env
    ```
 2. 確認事項:
@@ -250,7 +250,7 @@
 
 #### 6.2 存在しない.env.vaultedファイルのエクスポート
 1. .env.vaultedファイルが存在しない状態でエクスポートを実行
-   ```
+   ```bash
    ./envault export --file QA/nonexistent.env.vaulted
    ```
 2. 確認事項:
@@ -258,11 +258,11 @@
 
 #### 6.3 不正な形式の.env.vaultedファイルのエクスポート
 1. 不正な形式の.env.vaultedファイルを用意
-   ```
+   ```bash
    echo "invalid data" > QA/invalid.env.vaulted
    ```
 2. エクスポートを実行
-   ```
+   ```bash
    ./envault export --file QA/invalid.env.vaulted
    ```
 3. 確認事項:

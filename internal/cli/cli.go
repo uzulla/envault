@@ -293,9 +293,10 @@ func (c *CLI) processWithoutTUI(mode CommandMode, decryptedData []byte, outputSc
 
 // 新しいシェルセッションを起動
 func (c *CLI) runNewShell(envVars map[string]string, count int) error {
-	// 環境変数をセット
+	// 親プロセスの環境変数に影響を与えないために、子プロセス用の環境変数のみを設定
+	envSlice := os.Environ()
 	for k, v := range envVars {
-		os.Setenv(k, v)
+		envSlice = append(envSlice, fmt.Sprintf("%s=%s", k, v))
 	}
 	
 	fmt.Fprintf(os.Stderr, "%d個の環境変数を設定して新しいbashセッションを起動します\n", count)
@@ -304,16 +305,17 @@ func (c *CLI) runNewShell(envVars map[string]string, count int) error {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = os.Environ()
+	cmd.Env = envSlice
 	
 	return cmd.Run()
 }
 
 // 特定のコマンドを実行
 func (c *CLI) runCommand(envVars map[string]string, cmdArgs []string, count int) error {
-	// 環境変数をセット
+	// 親プロセスの環境変数に影響を与えないために、子プロセス用の環境変数のみを設定
+	envSlice := os.Environ()
 	for k, v := range envVars {
-		os.Setenv(k, v)
+		envSlice = append(envSlice, fmt.Sprintf("%s=%s", k, v))
 	}
 	
 	fmt.Fprintf(os.Stderr, "%d個の環境変数を設定して指定されたコマンドを実行します: %s\n", count, strings.Join(cmdArgs, " "))
@@ -322,7 +324,7 @@ func (c *CLI) runCommand(envVars map[string]string, cmdArgs []string, count int)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = os.Environ()
+	cmd.Env = envSlice
 	
 	return cmd.Run()
 }
