@@ -242,8 +242,8 @@ func (b *BubbleteaProvider) RunSelection(envVars []EnvVar) ([]EnvVar, error) {
 	}
 	
 	if m, ok := m.(model); ok {
-		if m.quitting && m.selectedResult == nil {
-			// キャンセルされた場合は元の環境変数をすべて有効にして返す
+		if m.quitting || m.selectedResult == nil || len(m.selectedResult) == 0 {
+			// キャンセルされた場合、またはresultが空の場合は元の環境変数をすべて有効にして返す
 			for i := range envVars {
 				envVars[i].Enabled = true
 			}

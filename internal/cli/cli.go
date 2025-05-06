@@ -24,6 +24,14 @@ var (
 	ErrInvalidCommand = errors.New("無効なコマンドです")
 )
 
+// コマンドモード
+type CommandMode int
+
+const (
+	ExportMode CommandMode = iota
+	UnsetMode
+)
+
 type CLI struct {
 	passwordStdin bool
 	vaultedFile   string
@@ -79,18 +87,18 @@ func (c *CLI) Run(args []string) error {
 			if err := globalFlags.Parse(args[1:dashDashIndex]); err != nil {
 				return err
 			}
-			return c.runExport(outputScriptOnly, cmdArgs)
+			return c.runWithVaultedFile(ExportMode, outputScriptOnly, cmdArgs)
 		} else {
 			if err := globalFlags.Parse(args[1:]); err != nil {
 				return err
 			}
-			return c.runExport(outputScriptOnly, nil)
+			return c.runWithVaultedFile(ExportMode, outputScriptOnly, nil)
 		}
 	case "unset":
 		if err := globalFlags.Parse(args[1:]); err != nil {
 			return err
 		}
-		return c.runUnset(outputScriptOnly, nil)
+		return c.runWithVaultedFile(UnsetMode, outputScriptOnly, nil)
 	case "dump":
 		if err := globalFlags.Parse(args[1:]); err != nil {
 			return err
@@ -152,11 +160,15 @@ func (c *CLI) runEncrypt(envFilePath string) error {
 	return nil
 }
 
-func (c *CLI) runExport(outputScriptOnly bool, cmdArgs []string) error {
-	// デバッグ出力を追加 - フラグの値を確認
-	fmt.Fprintf(os.Stderr, "DEBUG: フラグの状態 - select=%v, new-shell=%v, file=%s\n", 
-		c.selectVars, c.newShell, c.vaultedFile)
+// 暗号化ファイルを使用する共通ロジック
+func (c *CLI) runWithVaultedFile(mode CommandMode, outputScriptOnly bool, cmdArgs []string) error {
+	// デバッグ出力は環境変数で制御
+	if os.Getenv("ENVAULT_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "[debug] mode=%v select=%v new-shell=%v file=%s\n", 
+			mode, c.selectVars, c.newShell, c.vaultedFile)
+	}
 
+	// 暗号化ファイルの読み込みと復号化
 	data, err := file.ReadVaultedFile(c.vaultedFile)
 	if err != nil {
 		return fmt.Errorf(".env.vaultedファイルの読み込みに失敗しました: %w", err)
@@ -177,59 +189,41 @@ func (c *CLI) runExport(outputScriptOnly bool, cmdArgs []string) error {
 		return fmt.Errorf("復号化に失敗しました: %w", err)
 	}
 
-	// 選択オプションが指定されている場合はTUIを使用
+	// 処理モードによって動作を変更
 	if c.selectVars {
-		// コメント付きで環境変数を解析
-		envVarList, err := env.ParseEnvContentWithComments(decryptedData)
-		if err != nil {
-			return fmt.Errorf("環境変数の解析に失敗しました: %w", err)
-		}
+		return c.processWithTUI(mode, decryptedData, outputScriptOnly, cmdArgs)
+	} else {
+		return c.processWithoutTUI(mode, decryptedData, outputScriptOnly, cmdArgs)
+	}
+}
 
-		// TUIで環境変数を選択
-		selectedEnvVars, err := c.selectEnvironmentVariables(envVarList)
-		if err != nil {
-			return fmt.Errorf("環境変数の選択に失敗しました: %w", err)
-		}
+// TUIを使用して環境変数を処理
+func (c *CLI) processWithTUI(mode CommandMode, decryptedData []byte, outputScriptOnly bool, cmdArgs []string) error {
+	// コメント付きで環境変数を解析
+	envVarList, err := env.ParseEnvContentWithComments(decryptedData)
+	if err != nil {
+		return fmt.Errorf("環境変数の解析に失敗しました: %w", err)
+	}
 
-		// 有効な環境変数のみをマップに変換
-		envVars := env.FilterEnabledEnvVars(selectedEnvVars)
+	// TUIで環境変数を選択
+	selectedEnvVars, err := c.selectEnvironmentVariables(envVarList)
+	if err != nil {
+		return fmt.Errorf("環境変数の選択に失敗しました: %w", err)
+	}
 
-		// 選択された環境変数の数をカウント
-		enabledCount := 0
-		for _, ev := range selectedEnvVars {
-			if ev.Enabled {
-				enabledCount++
-			}
-		}
+	// 有効な環境変数のみをマップに変換
+	envVars := env.FilterEnabledEnvVars(selectedEnvVars)
 
+	// 選択された環境変数の数をカウント
+	enabledCount := env.CountEnabledEnvVars(selectedEnvVars)
+
+	// モードに応じた処理
+	switch mode {
+	case ExportMode:
 		if c.newShell {
-			for k, v := range envVars {
-				os.Setenv(k, v)
-			}
-			
-			fmt.Fprintf(os.Stderr, "%d個の環境変数を設定して新しいbashセッションを起動します\n", enabledCount)
-			
-			cmd := exec.Command("/bin/bash")
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Env = os.Environ()
-			
-			return cmd.Run()
+			return c.runNewShell(envVars, enabledCount)
 		} else if len(cmdArgs) > 0 {
-			for k, v := range envVars {
-				os.Setenv(k, v)
-			}
-			
-			fmt.Fprintf(os.Stderr, "%d個の環境変数を設定して指定されたコマンドを実行します: %s\n", enabledCount, strings.Join(cmdArgs, " "))
-			
-			cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Env = os.Environ()
-			
-			return cmd.Run()
+			return c.runCommand(envVars, cmdArgs, enabledCount)
 		} else if outputScriptOnly {
 			script := env.GenerateExportScriptFromEnvVarList(selectedEnvVars)
 			fmt.Print(script)
@@ -240,101 +234,8 @@ func (c *CLI) runExport(outputScriptOnly bool, cmdArgs []string) error {
 			}
 			fmt.Fprintf(os.Stderr, "%d個の環境変数をエクスポートしました\n", enabledCount)
 		}
-	} else {
-		// 従来の方法で環境変数を解析
-		envVars, err := env.ParseEnvContent(decryptedData)
-		if err != nil {
-			return fmt.Errorf("環境変数の解析に失敗しました: %w", err)
-		}
-
-		if c.newShell {
-			for k, v := range envVars {
-				os.Setenv(k, v)
-			}
-			
-			fmt.Fprintf(os.Stderr, "%d個の環境変数を設定して新しいbashセッションを起動します\n", len(envVars))
-			
-			cmd := exec.Command("/bin/bash")
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Env = os.Environ()
-			
-			return cmd.Run()
-		} else if len(cmdArgs) > 0 {
-			for k, v := range envVars {
-				os.Setenv(k, v)
-			}
-			
-			fmt.Fprintf(os.Stderr, "%d個の環境変数を設定して指定されたコマンドを実行します: %s\n", len(envVars), strings.Join(cmdArgs, " "))
-			
-			cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Env = os.Environ()
-			
-			return cmd.Run()
-		} else if outputScriptOnly {
-			script := env.GenerateExportScript(envVars)
-			fmt.Print(script)
-		} else {
-			script := env.GenerateExportScript(envVars)
-			if err := utils.ExecuteScript(script); err != nil {
-				return fmt.Errorf("環境変数のエクスポートに失敗しました: %w", err)
-			}
-			fmt.Fprintf(os.Stderr, "%d個の環境変数をエクスポートしました\n", len(envVars))
-		}
-	}
-
-	return nil
-}
-
-func (c *CLI) runUnset(outputScriptOnly bool, cmdArgs []string) error {
-	data, err := file.ReadVaultedFile(c.vaultedFile)
-	if err != nil {
-		return fmt.Errorf(".env.vaultedファイルの読み込みに失敗しました: %w", err)
-	}
-
-	var password string
-	if c.passwordStdin {
-		password, err = utils.GetPasswordFromStdin()
-	} else {
-		password, err = utils.GetPasswordInteractive("復号化用パスワードを入力してください: ")
-	}
-	if err != nil {
-		return err
-	}
-
-	decryptedData, err := crypto.Decrypt(data, password)
-	if err != nil {
-		return fmt.Errorf("復号化に失敗しました: %w", err)
-	}
-
-	// 選択オプションが指定されている場合はTUIを使用
-	if c.selectVars {
-		// コメント付きで環境変数を解析
-		envVarList, err := env.ParseEnvContentWithComments(decryptedData)
-		if err != nil {
-			return fmt.Errorf("環境変数の解析に失敗しました: %w", err)
-		}
-
-		// TUIで環境変数を選択
-		selectedEnvVars, err := c.selectEnvironmentVariables(envVarList)
-		if err != nil {
-			return fmt.Errorf("環境変数の選択に失敗しました: %w", err)
-		}
-
-		// 選択された環境変数の数をカウント
-		enabledCount := 0
-		for _, ev := range selectedEnvVars {
-			if ev.Enabled {
-				enabledCount++
-			}
-		}
-
+	case UnsetMode:
 		script := env.GenerateUnsetScriptFromEnvVarList(selectedEnvVars)
-
 		if outputScriptOnly {
 			fmt.Print(script)
 		} else {
@@ -343,26 +244,87 @@ func (c *CLI) runUnset(outputScriptOnly bool, cmdArgs []string) error {
 			}
 			fmt.Fprintf(os.Stderr, "%d個の環境変数をアンセットしました\n", enabledCount)
 		}
-	} else {
-		// 従来の方法で環境変数を解析
-		envVars, err := env.ParseEnvContent(decryptedData)
-		if err != nil {
-			return fmt.Errorf("環境変数の解析に失敗しました: %w", err)
+	}
+
+	return nil
+}
+
+// TUIを使用せずに環境変数を処理
+func (c *CLI) processWithoutTUI(mode CommandMode, decryptedData []byte, outputScriptOnly bool, cmdArgs []string) error {
+	// 従来の方法で環境変数を解析
+	envVars, err := env.ParseEnvContent(decryptedData)
+	if err != nil {
+		return fmt.Errorf("環境変数の解析に失敗しました: %w", err)
+	}
+
+	envVarCount := len(envVars)
+
+	// モードに応じた処理
+	switch mode {
+	case ExportMode:
+		if c.newShell {
+			return c.runNewShell(envVars, envVarCount)
+		} else if len(cmdArgs) > 0 {
+			return c.runCommand(envVars, cmdArgs, envVarCount)
+		} else if outputScriptOnly {
+			script := env.GenerateExportScript(envVars)
+			fmt.Print(script)
+		} else {
+			script := env.GenerateExportScript(envVars)
+			if err := utils.ExecuteScript(script); err != nil {
+				return fmt.Errorf("環境変数のエクスポートに失敗しました: %w", err)
+			}
+			fmt.Fprintf(os.Stderr, "%d個の環境変数をエクスポートしました\n", envVarCount)
 		}
-
+	case UnsetMode:
 		script := env.GenerateUnsetScript(envVars)
-
 		if outputScriptOnly {
 			fmt.Print(script)
 		} else {
 			if err := utils.ExecuteScript(script); err != nil {
 				return fmt.Errorf("環境変数のアンセットに失敗しました: %w", err)
 			}
-			fmt.Fprintf(os.Stderr, "%d個の環境変数をアンセットしました\n", len(envVars))
+			fmt.Fprintf(os.Stderr, "%d個の環境変数をアンセットしました\n", envVarCount)
 		}
 	}
 
 	return nil
+}
+
+// 新しいシェルセッションを起動
+func (c *CLI) runNewShell(envVars map[string]string, count int) error {
+	// 環境変数をセット
+	for k, v := range envVars {
+		os.Setenv(k, v)
+	}
+	
+	fmt.Fprintf(os.Stderr, "%d個の環境変数を設定して新しいbashセッションを起動します\n", count)
+	
+	cmd := exec.Command("/bin/bash")
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	
+	return cmd.Run()
+}
+
+// 特定のコマンドを実行
+func (c *CLI) runCommand(envVars map[string]string, cmdArgs []string, count int) error {
+	// 環境変数をセット
+	for k, v := range envVars {
+		os.Setenv(k, v)
+	}
+	
+	fmt.Fprintf(os.Stderr, "%d個の環境変数を設定して指定されたコマンドを実行します: %s\n", count, strings.Join(cmdArgs, " "))
+	
+	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	
+	return cmd.Run()
 }
 
 func (c *CLI) runDump() error {

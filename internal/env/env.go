@@ -125,6 +125,17 @@ func FilterEnabledEnvVars(envVars []tui.EnvVar) map[string]string {
 	return result
 }
 
+// 有効な環境変数の数を数えます
+func CountEnabledEnvVars(envVars []tui.EnvVar) int {
+	count := 0
+	for _, ev := range envVars {
+		if ev.Enabled {
+			count++
+		}
+	}
+	return count
+}
+
 func GenerateUnsetScript(envVars map[string]string) string {
 	var script strings.Builder
 	script.WriteString("#!/bin/bash\n\n")

@@ -81,7 +81,7 @@ go build -v -x cmd/envault/main.go
 ```
 
 4. コマンドラインから実行したコマンドと正確な引数
-```
+```bash
 # 例
 ./envault export --select
 ```
