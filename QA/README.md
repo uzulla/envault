@@ -44,7 +44,7 @@ envaultには包括的な自動テストが実装されています。実行方�
 #### マニュアルテスト対象機能
 
 1. **基本機能**
-   - 暗号化: `envault .env`
+   - 暗号化: `envault encrypt .env`
    - エクスポート: `envault export`
    - アンセット: `envault unset`
    - ダンプ: `envault dump`

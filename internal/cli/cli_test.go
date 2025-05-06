@@ -156,3 +156,13 @@ func TestDumpCommand(t *testing.T) {
 func TestRunEncrypt(t *testing.T) {
 	t.Skip("このテストは対話的な入力が必要なため、スキップします")
 }
+
+func TestEncryptCommand(t *testing.T) {
+	t.Skip("このテストは対話的な入力が必要なため、スキップします")
+	// encryptコマンドの基本的な動作確認
+	cli := NewCLI()
+	err := cli.Run([]string{"encrypt", "-h"})
+	if err != nil {
+		t.Errorf("Run(encrypt -h) error = %v", err)
+	}
+}

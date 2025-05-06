@@ -25,10 +25,10 @@ go test ./...
 
 ```bash
 # Encrypt .env file (creates .env.vaulted)
-./envault .env
+./envault encrypt .env
 
 # Encrypt with custom output path
-./envault .env -f /path/to/output.vaulted
+./envault encrypt .env -f /path/to/output.vaulted
 ```
 
 ### Exporting Environment Variables

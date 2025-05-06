@@ -74,7 +74,7 @@
 2. 以下のコマンドを実行
 
    ```bash
-   ./envault QA/test_files/test.env
+   ./envault encrypt QA/test_files/test.env
    ```
 
 3. 確認事項:
@@ -85,7 +85,11 @@
 
 #### 2.2 既存の.env.vaultedファイルの上書き確認
 
-1. 既にQA/.env.vaultedファイルが存在する状態で暗号化を実行
+1. 以下のコマンドを実行して既に存在する暗号化ファイルを上書き
+
+   ```bash
+   ./envault encrypt QA/test_files/test.env
+   ```
 2. 確認事項:
    - 上書きの確認メッセージが表示されること
    - 「Y」を入力すると上書きされること
@@ -96,9 +100,9 @@
 1. 以下のコマンドを実行
 
    ```bash
-   ./envault QA/test.env -f QA/custom.vaulted
+   ./envault encrypt QA/test_files/test.env -f QA/test_files/custom.vaulted
    # または
-   ./envault QA/test.env --file QA/custom.vaulted
+   ./envault encrypt QA/test_files/test.env --file QA/test_files/custom.vaulted
    ```
 
 2. 確認事項:
@@ -110,9 +114,9 @@
 1. 以下のコマンドを実行
 
    ```bash
-   echo "password" | ./envault QA/test.env -p
+   echo "password" | ./envault encrypt QA/test_files/test.env -p
    # または
-   echo "password" | ./envault QA/test.env --password-stdin
+   echo "password" | ./envault encrypt QA/test_files/test.env --password-stdin
    ```
 
 2. 確認事項:

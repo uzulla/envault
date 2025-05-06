@@ -39,12 +39,12 @@ go install github.com/uzulla/envault/cmd/envault@latest
 
 ```bash
 # .envファイルを暗号化して.env.vaultedファイルを作成
-envault .env
+envault encrypt .env
 
 # 出力ファイル名を指定して暗号化
-envault .env -f /path/to/output.vaulted
+envault encrypt .env -f /path/to/output.vaulted
 # または
-envault .env --file /path/to/output.vaulted
+envault encrypt .env --file /path/to/output.vaulted
 ```
 
 ### 環境変数のエクスポート
@@ -205,13 +205,13 @@ envault --version
 ### コマンド構造
 
 ```
-envault [オプション] <.envファイル> # 暗号化
-envault export [オプション]          # 環境変数のエクスポート
-envault export select [オプション]   # 選択的なエクスポート
-envault unset [オプション]           # 環境変数のアンセット
-envault dump [オプション]            # 暗号化ファイルの内容表示
-envault version                     # バージョン表示
-envault help                        # ヘルプ表示
+envault encrypt <.envファイル> [オプション] # 暗号化
+envault export [オプション]                 # 環境変数のエクスポート
+envault export select [オプション]          # 選択的なエクスポート
+envault unset [オプション]                  # 環境変数のアンセット
+envault dump [オプション]                   # 暗号化ファイルの内容表示
+envault version                            # バージョン表示
+envault help                               # ヘルプ表示
 ```
 
 ## コマンドラインパーサー

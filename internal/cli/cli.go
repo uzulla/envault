@@ -49,18 +49,14 @@ func NewCLI() *CLI {
 func (c *CLI) setupCommands() {
 	// ルートコマンド
 	c.rootCmd = &cobra.Command{
-		Use:     "envault [オプション] <.envファイル>",
+		Use:     "envault [command]",
 		Short:   "環境変数を暗号化して管理するツール",
 		Version: Version,
 		Long: `envault は環境変数を安全に管理するためのツールです。
 .env ファイルを暗号化し、必要に応じて環境変数をエクスポート/アンセットします。`,
-		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) < 1 {
-				return cmd.Help()
-			}
-			// 最初の引数は .env ファイルパスとして扱う
-			return c.runEncrypt(args[0])
+			// ヘルプを表示
+			return cmd.Help()
 		},
 		SilenceUsage: true,
 	}
@@ -68,6 +64,21 @@ func (c *CLI) setupCommands() {
 	// 共通フラグ
 	c.rootCmd.PersistentFlags().BoolVarP(&c.passwordStdin, "password-stdin", "p", false, "stdinからパスワードを読み込む")
 	c.rootCmd.PersistentFlags().StringVarP(&c.vaultedFile, "file", "f", "", "使用する.env.vaultedファイルのパス")
+	
+	// encrypt コマンド
+	encryptCmd := &cobra.Command{
+		Use:   "encrypt [オプション] <.envファイル>",
+		Short: ".envファイルを暗号化して.env.vaultedファイルを作成",
+		Long: `.envファイルを暗号化して.env.vaultedファイルを作成します。
+- 基本的な暗号化: envault encrypt .env
+- カスタム出力パス: envault encrypt .env -f custom.vaulted`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// 第1引数は .env ファイルパス
+			return c.runEncrypt(args[0])
+		},
+	}
+	c.rootCmd.AddCommand(encryptCmd)
 
 	// export コマンド
 	exportCmd := &cobra.Command{
