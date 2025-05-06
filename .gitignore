@@ -33,3 +33,5 @@ QA/decrypted.env
 # Build directory
 /build/
 /dist/
+
+**/.claude/settings.local.json
