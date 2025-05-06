@@ -8,7 +8,7 @@ envaultは、環境変数を含む.envファイルを安全に暗号化・復号
 
 envaultは以下の主要コマンドをサポートします：
 
-1. `envault .env` - .envファイルを暗号化して.env.vaultedファイルを作成
+1. `envault encrypt .env` - .envファイルを暗号化して.env.vaultedファイルを作成
 2. `envault export` - .env.vaultedファイルから環境変数をエクスポート
    - `envault export select` - TUIを使って環境変数を選択してからエクスポート
 3. `envault unset` - .env.vaultedファイルに記載された環境変数をアンセット
@@ -181,6 +181,7 @@ Cobraを使用してコマンド階層が以下のように構造化されてい
 
 ```
 envault
+├── encrypt
 ├── export
 │   └── select
 ├── unset
