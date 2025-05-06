@@ -89,12 +89,14 @@ go test ./...
 ## テスト環境の準備
 
 1. envaultをビルドします：
+
    ```bash
    cd /path/to/envault
    go build -o envault cmd/envault/main.go
    ```
 
 2. テスト用の.envファイルを使用します（既にQAディレクトリに配置されています）：
+
    ```bash
    ./envault QA/test.env
    ```

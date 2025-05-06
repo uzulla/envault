@@ -52,6 +52,7 @@ func ParseEnvContent(data []byte) (map[string]string, error) {
 func ParseEnvContentWithComments(data []byte) ([]tui.EnvVar, error) {
 	var result []tui.EnvVar
 	var orderedKeys []string // 環境変数の出現順を保持
+	var envVarsWithComments = make(map[string]tui.EnvVar) // キーと環境変数オブジェクトのマップ
 	
 	envVarsMap, err := ParseEnvContent(data)
 	if err != nil {
@@ -100,34 +101,25 @@ func ParseEnvContentWithComments(data []byte) ([]tui.EnvVar, error) {
 					orderedKeys = append(orderedKeys, key)
 				}
 				
-				// 最後の値を使って環境変数オブジェクトを作成（上書き）
-				var existingIndex = -1
-				for i, ev := range result {
-					if ev.Key == key {
-						existingIndex = i
-						break
-					}
-				}
-				
-				newEnv := tui.EnvVar{
+				// 環境変数オブジェクトを作成しマップに保存
+				envVarsWithComments[key] = tui.EnvVar{
 					Key:     key,
 					Value:   value,
 					Comment: lastComment,
 					Enabled: true,
 				}
 				
-				if existingIndex >= 0 {
-					// 既存の項目を更新
-					result[existingIndex] = newEnv
-				} else {
-					// 新しい項目を追加
-					result = append(result, newEnv)
-				}
-				
 				lastComment = "" // コメントをリセット
 			}
 		} else {
 			lastComment = "" // Key=Value の形式でない行ではコメントをリセット
+		}
+	}
+	
+	// 出現順に基づいて結果を構築
+	for _, key := range orderedKeys {
+		if envVar, exists := envVarsWithComments[key]; exists {
+			result = append(result, envVar)
 		}
 	}
 	
